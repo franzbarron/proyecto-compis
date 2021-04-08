@@ -130,3 +130,6 @@ dmypy.json
 
 # VS Code configuration
 .vscode
+
+# SLY debug output
+parser.out

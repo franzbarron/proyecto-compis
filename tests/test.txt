@@ -1,0 +1,44 @@
+program Team_pp;
+class Person
+{
+    attributes
+    var age: int;
+    var name: string;
+    methods
+    int function UNO(x: int) {
+        return (age - x);
+    }
+}
+
+var i, j, p: int;
+var student: Person;
+
+int function fact(j: int) {
+    var i: int;
+    i = j + (p - j * 2 + j);
+    if(j == 1) then {
+        return (j);
+    } else {
+        return (j * fact(j - 1));
+    }
+}
+
+void function pelos(y: int) {
+    var x: int;
+    read(student.age);
+    x = y;
+    while(x < 10) do {
+        print(student.UNO(x));
+        x = x + 1;
+    }
+}
+
+main() {
+    read(p); j = p * 2;
+    i = fact(p);
+    read(student.name);
+    pelos(p);
+    for i = 1 until 10 do {
+        print("Hello World", student.name, fact(student.age));
+    }
+}

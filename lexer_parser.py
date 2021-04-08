@@ -256,11 +256,11 @@ class UHUParser(Parser):
     def res_write(self, p):
         return 'res_write'
 
-    @_('COMMA res_write', 'expression')
+    @_('COMMA res_write', 'empty')
     def comma_thing(self, p):
         return 'comma_thing'
 
-    @_('var_cte', 'empty')
+    @_('var_cte', 'expression')
     def write_h(self, p):
         return 'write_h'
 
@@ -315,8 +315,12 @@ class UHUParser(Parser):
 if __name__ == '__main__':
     lexer = UHULexer()
     parser = UHUParser()
+    filename = 'tests/test.txt'
 
-    with open('test.txt') as fp:
+    if(len(sys.argv) > 1):
+        filename = sys.argv[1]
+
+    with open(filename) as fp:
         try:
             result = parser.parse(lexer.tokenize(''.join(fp)))
             print(result)

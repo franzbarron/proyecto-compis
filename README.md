@@ -13,3 +13,17 @@ Las siguientes herramientas son necesarias:
 
 - [Python 3.6 o superior](https://www.python.org/downloads/)
 - [SLY](https://github.com/dabeaz/sly)
+
+## Ejecución del analizador léxico-sintáctico
+
+Para ejecutar el analizador léxico-sintáctico:
+
+```
+python lexer_parser.py <ruta/al/archivo>
+```
+
+Se incluye una carpeta con archivos de prueba en el repositorio, por ejemplo:
+
+```
+python lexer_parser.py ./tests/test.txt
+```

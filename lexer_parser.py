@@ -13,9 +13,10 @@ class UHULexer(Lexer):
     }
 
     ignore = ' \t'
+    ignore_comment = r'%%.*'
 
     CTE_F = r'\d+\.\d+(e(\+|\-)?\d+)*'
-    CTE_STRING = r'\"[^\"]*\"'
+    CTE_STRING = r'\"[^\"\n]*\"'
     ID = r'[a-zA-Z_][a-zA-Z0-9_]*'
     CTE_I = r'\d+'
     PLUS = r'\+'
@@ -150,7 +151,7 @@ class UHUParser(Parser):
     def composite_type(self, p):
         return 'composite_type'
 
-    @_('ID COLON simple_type param_choose')
+    @_('ID COLON simple_type param_choose', 'empty')
     def parameters(self, p):
         return 'parameters'
 

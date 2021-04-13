@@ -1,0 +1,39 @@
+program InheritanceExample;
+
+%% All attributes and methods of all classes are public.
+class Animal {
+ attributes
+  var name: string; %% attributes may only be basic types, not instances of Objects
+  var age: int;
+
+ methods
+  void function eat() {
+    print(name, "ate something");
+  }
+}
+
+%% Cat will have all attributes and methods of Animal
+class Cat inherits Animal {
+ attributes
+  var color: string;
+
+ methods
+  %% Prefered way to initialize attributes. Must be manually called.
+  void function init(_name: string, _age: int, _color: string) {
+    name = _name;
+    age = _age;
+    color = _color;
+  }
+
+  void function meow() {
+    print("Meow!");
+  }
+}
+
+main() {
+  var myCat: Cat;
+
+  myCat.init("Peludin", 2, "black");
+  print("I have a cat called", myCat.name);
+  myCat.meow();
+}

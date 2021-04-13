@@ -1,6 +1,6 @@
 program factorial;
 
-int function factorial(n: int) {
+int function factorial() {
   if(n == 0) then {
     return (1);
   }

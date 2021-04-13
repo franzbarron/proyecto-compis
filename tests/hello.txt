@@ -1,3 +1,5 @@
+%% most basic structure
+
 program Hello;
 
 main() {

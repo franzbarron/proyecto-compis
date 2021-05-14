@@ -448,6 +448,8 @@ class DomasParser(Parser):
             cte_type = 'string'
         elif hasattr(p, 'cte_bool'):
             cte_type = 'bool'
+        elif hasattr(p, 'call_to_function'):
+            cte_type = self.function_table[p[0]]['return_type']
         else:
             if not self.check_variable_exists(p[len(p) - 1]):
                 raise SyntaxError(f'Variable {p[len(p) - 1]} is not declared')
@@ -563,7 +565,7 @@ class DomasParser(Parser):
 
     @_('function_or_method vf0 LPAREN func_params RPAREN fp2 fp3 ctf0')
     def call_to_function(self, p):
-        return 'call_to_function'
+        return p[0]
 
     @_('')
     def ctf0(self, p):

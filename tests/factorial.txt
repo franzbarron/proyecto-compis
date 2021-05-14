@@ -1,6 +1,6 @@
 program factorial;
 
-int function factorial() {
+int function fact(n: int) {
   if(n == 0) then {
     return (1);
   }
@@ -12,5 +12,5 @@ main() {
   var num: int;
   print("Insert number");
   read(num);
-  print(factorial(n));
+  print(factorial(num));
 }

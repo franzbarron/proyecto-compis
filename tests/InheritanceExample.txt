@@ -30,6 +30,8 @@ class Cat inherits Animal {
   }
 }
 
+var foo: int;
+
 main() {
   var myCat: Cat;
 

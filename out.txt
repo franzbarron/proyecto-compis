@@ -1,0 +1,163 @@
+Tabla de funciones: {
+  "patito": {
+    "return_type": null,
+    "vars": {
+      "k": {
+        "type": "int"
+      },
+      "j": {
+        "type": "int"
+      },
+      "i": {
+        "type": "int"
+      },
+      "f": {
+        "type": "float"
+      },
+      "uno": {
+        "type": "void"
+      },
+      "dos": {
+        "type": "int"
+      }
+    }
+  },
+  "uno": {
+    "return_type": "void",
+    "vars": {
+      "a": {
+        "type": "int"
+      },
+      "b": {
+        "type": "int"
+      }
+    },
+    "start": 8
+  },
+  "dos": {
+    "return_type": "int",
+    "vars": {
+      "a": {
+        "type": "int"
+      },
+      "g": {
+        "type": "float"
+      },
+      "i": {
+        "type": "int"
+      }
+    },
+    "start": 25
+  },
+  "main": {
+    "return_type": null,
+    "vars": {
+      "duckie": {
+        "type": "Pato"
+      }
+    }
+  }
+}
+Table de clases: {
+  "Pato": {
+    "vars": {
+      "name": {
+        "type": "string"
+      },
+      "age": {
+        "type": "int"
+      }
+    },
+    "quack": {
+      "return_type": "void",
+      "vars": {},
+      "start": 2
+    },
+    "calculate_age": {
+      "return_type": "int",
+      "vars": {
+        "anos": {
+          "type": "int"
+        }
+      },
+      "start": 4
+    }
+  }
+}
+Cuadruplos:
+1 ( None, None, goto, 45)
+2 ( None, None, print, quack!)
+3 ( None, None, end_func, None)
+4 ( anos, 2, *, t1)
+5 ( t1, None, =, age)
+6 ( None, None, return, age)
+7 ( None, None, end_func, None)
+8 ( a, 0, >, t1)
+9 ( None, t1, goto_f, 22)
+10 ( b, j, *, t2)
+11 ( a, t2, +, t3)
+12 ( t3, i, +, t4)
+13 ( t4, None, =, i)
+14 ( i, j, +, t5)
+15 ( None, None, print, t5)
+16 ( uno, None, era, None)
+17 ( a, i, -, t6)
+18 ( t6, None, param, param1)
+19 ( i, None, param, param2)
+20 ( uno, None, gosub, None)
+21 ( None, None, goto, 24)
+22 ( a, b, +, t7)
+23 ( None, None, print, t7)
+24 ( None, None, end_func, None)
+25 ( a, None, =, i)
+26 ( a, 0, >, t1)
+27 ( None, t1, goto_f, 41)
+28 ( k, j, *, t2)
+29 ( a, t2, -, t3)
+30 ( t3, None, =, a)
+31 ( uno, None, era, None)
+32 ( a, 2, *, t4)
+33 ( t4, None, param, param1)
+34 ( a, k, +, t5)
+35 ( t5, None, param, param2)
+36 ( uno, None, gosub, None)
+37 ( g, j, *, t6)
+38 ( t6, k, -, t7)
+39 ( t7, None, =, g)
+40 ( None, None, goto, 26)
+41 ( k, j, *, t8)
+42 ( i, t8, +, t9)
+43 ( None, None, return, t9)
+44 ( None, None, end_func, None)
+45 ( 2, None, =, i)
+46 ( i, 1, +, t1)
+47 ( t1, None, =, k)
+48 ( 3.14, None, =, f)
+49 ( 1, None, =, duckie.age)
+50 ( i, 0, >, t2)
+51 ( None, t2, goto_f, 70)
+52 ( dos, None, era, None)
+53 ( i, k, +, t3)
+54 ( t3, None, param, param1)
+55 ( f, 3, *, t4)
+56 ( t4, None, param, param2)
+57 ( dos, None, gosub, None)
+58 ( dos, None, =, t5)
+59 ( t5, 3, +, t6)
+60 ( None, None, print, t6)
+61 ( None, None, print, i)
+62 ( j, 2, *, t7)
+63 ( None, None, print, t7)
+64 ( f, 2, *, t8)
+65 ( t8, 1.5, +, t9)
+66 ( None, None, print, t9)
+67 ( i, k, -, t10)
+68 ( t10, None, =, i)
+69 ( None, None, goto, 50)
+70 ( quack, None, era, None)
+71 ( quack, None, gosub, None)
+72 ( calculate_age, None, era, None)
+73 ( 5, None, param, param1)
+74 ( calculate_age, None, gosub, None)
+75 ( None, None, end, None)
+programa

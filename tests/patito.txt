@@ -1,4 +1,19 @@
 program  patito;
+
+class Pato {
+  attributes
+  var name: string;
+  var age: int;
+  methods
+  void function quack() {
+    print("quack!");
+  }
+  int function calculate_age(anos:int){
+    age = anos * 2;
+    return(age);
+  }
+}
+
 var i, j, k: int;
 var f: float;
 
@@ -25,11 +40,15 @@ int function dos(a:int, g: float){
 }
 
 main() {
+  var duckie: Pato;
   i = 2; k = i + 1;
   f = 3.14;
+  duckie.age = 1;
   while(i > 0) do {
     print(dos(i + k, f * 3) + 3);
     print(i, j* 2, f * 2 + 1.5);
     i = i - k;
   }
+  duckie.quack();
+  duckie.calculate_age(5);
 }

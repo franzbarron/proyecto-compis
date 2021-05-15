@@ -21,9 +21,10 @@ class DomasParser(Parser):
     stack_operators = []
     quadruples = []
     jumps = []
-    quad_counter = 0
+    quad_counter = 1
     param_counter = 1
     last_type = None
+    temp_counter = 1
 
     def add_to_func_table(self, id, return_type):
         self.function_table[id] = {'return_type': return_type, 'vars': {}}
@@ -51,18 +52,20 @@ class DomasParser(Parser):
         op = self.stack_operators.pop()
         r_type = sm.checkOperation(lo['type'], ro['type'], op)
         self.quadruples.append(
-            Quadruple(lo['value'], ro['value'], op, 'r' + str(self.quad_counter)))
+            Quadruple(lo['value'], ro['value'], op, 't' + str(self.temp_counter)))
         self.last_type = r_type
         self.stack_operands.append(
-            {'value': 'r' + str(self.quad_counter), 'type': r_type})
+            {'value': 't' + str(self.temp_counter), 'type': r_type})
+        self.temp_counter += 1
         self.quad_counter += 1
+        print('Made the quad ', self.quadruples[-1])
 
     @_('PROGRAM create_func_table ID add_func_table SEMI pro0 declarations')
     def programa(self, p):
         print('Tabla de funciones:', json.dumps(self.function_table, indent=2))
         print('Table de clases:', json.dumps(self.class_table, indent=2))
         print('Cuadruplos:')
-        for num, quad in enumerate(self.quadruples, start=0):
+        for num, quad in enumerate(self.quadruples, start=1):
             print(num, quad)
         return 'programa'
 
@@ -298,6 +301,8 @@ class DomasParser(Parser):
             self.add_to_func_table(p[-1], self.curr_func_type)
             self.last_func_added = p[-1]
             self.curr_scope = self.last_func_added
+            self.function_table[self.program_name]['vars'][p[-1]
+                                                           ] = {'type': self.curr_func_type}
 
     @_('')
     def fd4(self, p):
@@ -312,6 +317,7 @@ class DomasParser(Parser):
     def fd6(self, p):
         self.quadruples.append(Quadruple(None, None, 'end_func', None))
         self.quad_counter += 1
+        self.temp_counter = 1
 
     @_('statement statements', 'empty')
     def statements(self, p):
@@ -372,11 +378,10 @@ class DomasParser(Parser):
     def ass2(self, p):
         while(len(self.stack_operators)):
             self.make_and_push_quad()
-        ro = self.stack_operands.pop()
+        lo = self.stack_operands.pop()
         v_type = self.get_var_type(self.latest_var)
-        self.last_type = sm.checkOperation(v_type, ro['type'], '=')
-        q = Quadruple(self.latest_var, ro['value'],
-                      '=', 'r' + str(self.quad_counter))
+        self.last_type = sm.checkOperation(v_type, lo['type'], '=')
+        q = Quadruple(lo['value'], None, '=', self.latest_var)
         self.quadruples.append(q)
         self.quad_counter += 1
 
@@ -449,7 +454,9 @@ class DomasParser(Parser):
         elif hasattr(p, 'cte_bool'):
             cte_type = 'bool'
         elif hasattr(p, 'call_to_function'):
-            cte_type = self.function_table[p[0]]['return_type']
+            for num, quad in enumerate(self.quadruples, start=1):
+                print(num, quad)
+            return p[0]
         else:
             if not self.check_variable_exists(p[len(p) - 1]):
                 raise SyntaxError(f'Variable {p[len(p) - 1]} is not declared')
@@ -492,7 +499,7 @@ class DomasParser(Parser):
         elif self.stack_operators[-1] == '*' or self.stack_operators[-1] == '/':
             print(f'operators top is * or / line {sys._getframe().f_lineno}')
             self.make_and_push_quad()
-            if (self.stack_operators[-1] == '+' or self.stack_operators[-1] == '-') and (p[-1] == '+' or p[-1] == '-'):
+            if (self.stack_operators and (self.stack_operators[-1] == '+' or self.stack_operators[-1] == '-')) and (p[-1] == '+' or p[-1] == '-'):
                 print(sys._getframe().f_lineno)
                 self.make_and_push_quad()
             self.stack_operators.append(p[-1])
@@ -565,17 +572,20 @@ class DomasParser(Parser):
 
     @_('function_or_method vf0 LPAREN func_params RPAREN fp2 fp3 ctf0')
     def call_to_function(self, p):
-        return p[0]
+        return {'value': 't' + str(self.temp_counter - 1), 'type': self.function_table[p[0]]['return_type']}
 
     @_('')
     def ctf0(self, p):
         self.quadruples.append(
-            Quadruple(self.last_func_added, None, '=', 'r' + str(self.quad_counter)))
+            Quadruple(self.last_func_added, None, '=', 't' + str(self.temp_counter)))
         self.quad_counter += 1
+        self.temp_counter += 1
 
     @_('ID ctf1_exists_in_func_table', 'ID DOT ID')
     def function_or_method(self, p):
         print('function_or_method')
+        for num, quad in enumerate(self.quadruples, start=1):
+            print(num, quad)
         if(len(p) == 2):
             if not p[0] in self.function_table:
                 raise SyntaxError(f'function {p[0]} is not defined')
@@ -591,7 +601,7 @@ class DomasParser(Parser):
         else:
             pass
 
-    @_('COMMA expression param_list', 'empty')
+    @_('COMMA expression fp1 param_list', 'empty')
     def param_list(self, p):
         return 'param_list'
 
@@ -611,7 +621,14 @@ class DomasParser(Parser):
     def pr1(self, p):
         made_quad = False
         while(len(self.stack_operators)):
-            self.make_and_push_quad()
+            ro = self.stack_operands.pop()
+            lo = self.stack_operands.pop()
+            op = self.stack_operators.pop()
+            self.last_type = sm.checkOperation(lo['type'], ro['type'], op)
+            self.quadruples.append(
+                Quadruple(lo['value'], ro['value'], op, 't' + str(self.temp_counter)))
+            self.temp_counter += 1
+            self.quad_counter += 1
             made_quad = True
         if made_quad:
             last_quad = self.quadruples[-1]
@@ -634,12 +651,16 @@ class DomasParser(Parser):
     @_('')
     def dec1(self, p):
         while len(self.stack_operators):
-            self.make_and_push_quad()
+            ro = self.stack_operands.pop()
+            lo = self.stack_operands.pop()
+            op = self.stack_operators.pop()
+            self.last_type = sm.checkOperation(lo['type'], ro['type'], op)
+            self.quadruples.append(
+                Quadruple(lo['value'], ro['value'], op, 't' + str(self.temp_counter)))
+            self.temp_counter += 1
+            self.quad_counter += 1
 
         print(f'dec1 line {sys._getframe().f_lineno}')
-        print('Cuadruplos:')
-        for quad in self.quadruples:
-            print(quad)
         print('Last type:', self.last_type)
         if self.last_type != 'bool':
             raise SyntaxError(
@@ -649,8 +670,11 @@ class DomasParser(Parser):
             self.quadruples.append(Quadruple(None, last_quad, 'goto_f', None))
             self.jumps.append(self.quad_counter)
             self.quad_counter += 1
+        # print('Cuadruplos:')
+        # for quad in self.quadruples:
+        #     print(quad)
 
-    @_('dec2 ELSE LCURL statements RCURL dec3', 'empty')
+    @_('dec2 ELSE LCURL statements RCURL dec3', 'empty dec4')
     def else_stm(self, p):
         return 'else_stm'
 
@@ -660,12 +684,17 @@ class DomasParser(Parser):
         self.quadruples.append(Quadruple(None, None, 'goto', None))
         self.jumps.append(self.quad_counter)
         self.quad_counter += 1
-        self.quadruples[falso].res = self.quad_counter
+        self.quadruples[falso - 1].res = self.quad_counter
 
     @_('')
     def dec3(self, p):
         jump = self.jumps.pop()
-        self.quadruples[jump].res = self.quad_counter
+        self.quadruples[jump - 1].res = self.quad_counter
+
+    @_('')
+    def dec4(self, p):
+        jump = self.jumps.pop()
+        self.quadruples[jump - 1].res = self.quad_counter
 
     @_('conditional', 'non_conditional')
     def repetition_statement(self, p):
@@ -680,11 +709,22 @@ class DomasParser(Parser):
         self.jumps.append(self.quad_counter)
 
     @_('')
+    def foo(self, p):
+        print(f'foo line {sys._getframe().f_lineno}')
+
+    @_('')
     def con1(self, p):
         while len(self.stack_operators):
-            self.make_and_push_quad()
-        for quad in self.quadruples:
-            print(quad)
+            ro = self.stack_operands.pop()
+            lo = self.stack_operands.pop()
+            op = self.stack_operators.pop()
+            self.last_type = sm.checkOperation(lo['type'], ro['type'], op)
+            self.quadruples.append(
+                Quadruple(lo['value'], ro['value'], op, 't' + str(self.temp_counter)))
+            self.temp_counter += 1
+            self.quad_counter += 1
+        # for quad in self.quadruples:
+        #     print(quad)
         print('Last type:', self.last_type)
         if self.last_type != 'bool':
             raise SyntaxError(
@@ -697,11 +737,14 @@ class DomasParser(Parser):
 
     @_('')
     def con2(self, p):
+        print(f'con2 line {sys._getframe().f_lineno}')
         falso = self.jumps.pop()
         ret = self.jumps.pop()
         self.quadruples.append(Quadruple(None, None, 'goto', ret))
-        self.quadruples[falso].res = self.quad_counter + 1
+        self.quadruples[falso - 1].res = self.quad_counter + 1
         self.quad_counter += 1
+        for num, quad in enumerate(self.quadruples, start=1):
+            print(num, quad)
 
     @_('FOR variable ass1 EQUALS expression nc0 UNTIL expression nc1 DO nc2 LCURL statements RCURL nc3')
     def non_conditional(self, p):
@@ -710,7 +753,14 @@ class DomasParser(Parser):
     @_('')
     def nc0(self, p):
         while len(self.stack_operators):
-            self.make_and_push_quad()
+            ro = self.stack_operands.pop()
+            lo = self.stack_operands.pop()
+            op = self.stack_operators.pop()
+            self.last_type = sm.checkOperation(lo['type'], ro['type'], op)
+            self.quadruples.append(
+                Quadruple(lo['value'], ro['value'], op, 't' + str(self.temp_counter)))
+            self.temp_counter += 1
+            self.quad_counter += 1
         print(f'nc0 line {sys._getframe().f_lineno}')
         if len(self.stack_operands) == 0 == 0 and (self.last_type != 'int' and self.last_type != 'float'):
             raise SyntaxError(
@@ -721,21 +771,23 @@ class DomasParser(Parser):
         elif len(self.stack_operands) == 0:
             last_quad = self.quadruples[-1].res
             self.quadruples.append(
-                Quadruple(self.latest_var, last_quad, '=', 'r' + str(self.quad_counter)))
+                Quadruple(self.latest_var, last_quad, '=', 't' + str(self.temp_counter)))
             self.jumps.append(self.quad_counter)
             self.quad_counter += 1
+            self.temp_counter += 1
         else:
             self.quadruples.append(
-                Quadruple(self.latest_var, p[-1]['value'], '=', 'r' + str(self.quad_counter)))
+                Quadruple(self.latest_var, p[-1]['value'], '=', 't' + str(self.temp_counter)))
             self.jumps.append(self.quad_counter)
             self.quad_counter += 1
+            self.temp_counter += 1
 
     @_('')
     def nc1(self, p):
         print(f'dec1 line {sys._getframe().f_lineno}')
         print('Cuadruplos:')
-        for quad in self.quadruples:
-            print(quad)
+        for num, quad in enumerate(self.quadruples, start=1):
+            print(num, quad)
         while len(self.stack_operators):
             self.make_and_push_quad()
         if len(self.stack_operands) == 0 and (self.last_type != 'int' and self.last_type != 'float'):
@@ -754,9 +806,10 @@ class DomasParser(Parser):
         else:
             lo = self.jumps[-1]
             self.quadruples.append(
-                Quadruple('r' + str(lo), p[-1]['value'], '<=', 'r' + str(self.quad_counter)))
+                Quadruple('r' + str(lo), p[-1]['value'], '<=', 't' + str(self.temp_counter)))
             self.jumps.append(self.quad_counter)
             self.quad_counter += 1
+            self.temp_counter += 1
 
     @_('')
     def nc2(self, p):
@@ -778,7 +831,7 @@ class DomasParser(Parser):
         self.quad_counter += 1
         self.quadruples.append(Quadruple(None, None, 'goto', cond))
         self.quad_counter += 1
-        self.quadruples[falso].res = self.quad_counter
+        self.quadruples[falso - 1].res = self.quad_counter
 
     @_('RETURN LPAREN expression fr0 RPAREN SEMI')
     def function_returns(self, p):
@@ -795,6 +848,7 @@ class DomasParser(Parser):
             self.quadruples.append(
                 Quadruple(None, None, 'return', last_quad.res))
             self.quad_counter += 1
+            self.stack_operands.pop()
         else:
             self.quadruples.append(
                 Quadruple(None, None, 'return', p[-1]['value']))
@@ -812,6 +866,8 @@ class DomasParser(Parser):
 
     @_('')
     def fp3(self, p):
+        for num, quad in enumerate(self.quadruples, start=1):
+            print(num, quad)
         self.param_counter = 1
 
     @_('')
@@ -829,7 +885,14 @@ class DomasParser(Parser):
     def fp1(self, p):
         made_quad = False
         while(len(self.stack_operators)):
-            self.make_and_push_quad()
+            ro = self.stack_operands.pop()
+            lo = self.stack_operands.pop()
+            op = self.stack_operators.pop()
+            self.last_type = sm.checkOperation(lo['type'], ro['type'], op)
+            self.quadruples.append(
+                Quadruple(lo['value'], ro['value'], op, 't' + str(self.temp_counter)))
+            self.temp_counter += 1
+            self.quad_counter += 1
             made_quad = True
         if made_quad:
             last_quad = self.quadruples[-1]
@@ -838,18 +901,23 @@ class DomasParser(Parser):
             self.quad_counter += 1
             self.param_counter += 1
         else:
+            val = self.stack_operands.pop()
             self.quadruples.append(
-                Quadruple(p[-1]['value'], None, 'param', f'param{self.param_counter}'))
+                Quadruple(val['value'], None, 'param', f'param{self.param_counter}'))
             self.quad_counter += 1
             self.param_counter += 1
 
-    @_('MAIN m1_add_to_func_table LPAREN RPAREN LCURL main0 var_declaration statements RCURL')
+    @_('MAIN m1_add_to_func_table LPAREN RPAREN LCURL main0 var_declaration statements RCURL main2')
     def main(self, p):
         return 'main'
 
     @_('')
     def main0(self, p):
         self.quadruples[0].res = self.quad_counter
+
+    @_('')
+    def main2(self, p):
+        self.quadruples.append(Quadruple(None, None, 'end', None))
 
     @_('')
     def m1_add_to_func_table(self, p):

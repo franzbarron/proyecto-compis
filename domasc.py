@@ -4,7 +4,6 @@ import sys
 
 
 if __name__ == '__main__':
-    # sys.stdout = open('file', 'w')
     lexer = DomasLexer()
     parser = DomasParser()
     filename = 'tests/test.txt'
@@ -20,5 +19,4 @@ if __name__ == '__main__':
             pass
         except Exception as err:
             print(err)
-
-    # sys.stdout.close()
+            pass

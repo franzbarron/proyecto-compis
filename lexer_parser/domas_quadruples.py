@@ -7,4 +7,4 @@ class Quadruple:
         self.res = res
 
     def __str__(self):
-        return f'( {self.lo}, {self.ro}, {self.op}, {self.res})'
+        return f'({self.lo}, {self.ro}, {self.op}, {self.res})'

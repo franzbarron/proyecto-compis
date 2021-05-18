@@ -11,6 +11,12 @@ class DomasLexer(Lexer):
         SEMI, COLON, DOT, AND, OR
     }
 
+    reserved_words = ['program', 'var', 'main', 'class', 'int', 'float',
+                      'string', 'bool', 'void', 'read', 'if', 'then', 'else',
+                      'print', 'while', 'do', 'inherits', 'return',
+                      'attributes', 'methods', 'function', 'true', 'false',
+                      'for', 'until']
+
     ignore = ' \t'
     ignore_comment = r'%%.*'
 

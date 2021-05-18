@@ -1,33 +1,43 @@
-
 from sly import Parser
 from .domas_lexer import DomasLexer
 from .domas_quadruples import Quadruple
+from .domas_errors import *
 from . import domas_semantic_cube as sm
 import json  # to debug only
 import sys
 import copy
-from inspect import currentframe
-cf = currentframe()
 
 
 class DomasParser(Parser):
+    # Parser directives
     tokens = DomasLexer.tokens
     debugfile = 'parser.out'
     start = 'programa'
-    var_stack = []
+    # Tables
+    function_table = {}
     class_table = {}
-    current_class = None
+    constant_table = {'int': [], 'float': [], 'string': [], 'bool': []}
+    # Stacks
     stack_operands = []
     stack_operators = []
+    stack_vars = []
+    # Lists
     quadruples = []
     jumps = []
+    # Counters
     quad_counter = 1
     param_counter = 1
-    last_type = None
     temp_counter = 1
+    # Aux vars
+    current_class = None
+    last_type = None
+    types = ['int', 'float', 'string', 'bool', 'void']
+    operators = ['+', '-', '*', '/', '<',
+                 '>', '<=', '>=', '==', '<>', '&', '|']
 
     def add_to_func_table(self, id, return_type):
-        self.function_table[id] = {'return_type': return_type, 'vars': {}}
+        self.function_table[id] = {
+            'return_type': return_type, 'vars': {}, 'num_types': '00000', 'params': ''}
 
     def check_variable_exists(self, var):
         if self.current_class != None:
@@ -56,198 +66,203 @@ class DomasParser(Parser):
         lo = self.stack_operands.pop()
         op = self.stack_operators.pop()
         r_type = sm.checkOperation(lo['type'], ro['type'], op)
-        self.quadruples.append(
-            Quadruple(lo['value'], ro['value'], op, 't' + str(self.temp_counter)))
+        print(lo)
         self.last_type = r_type
+        idx = self.types.index(r_type)
+        t_dir = idx * 300 + self.temp_counter + 3000
         self.stack_operands.append(
-            {'value': 't' + str(self.temp_counter), 'type': r_type})
+            {'value': 't' + str(self.temp_counter), 'type': r_type, 'dir': t_dir})
+        # op_idx = self.operators.index(op)
+        # self.quadruples.append(
+        #     Quadruple(lo['dir'], ro['dir'], op_idx, t_dir))
+        self.quadruples.append(
+            Quadruple(lo['dir'], ro['dir'], op, t_dir))
         self.temp_counter += 1
         self.quad_counter += 1
         # print('Made the quad ', self.quadruples[-1])
 
-    @_('PROGRAM create_func_table ID add_func_table SEMI pro0 declarations')
+    @_('PROGRAM ID pro1 SEMI pro0 declarations')
     def programa(self, p):
-        print('Tabla de funciones:', json.dumps(self.function_table, indent=2))
-        print('Table de clases:', json.dumps(self.class_table, indent=2))
+        func_dir_out = open('debug/funcdir.out', 'w')
+        class_dir_out = open('debug/classdir.out', 'w')
+        func_dir_out.write(json.dumps(
+            self.function_table, indent=2))
+        class_dir_out.write(json.dumps(
+            self.class_table, indent=2))
         print('Cuadruplos:')
         for num, quad in enumerate(self.quadruples, start=1):
             print(num, quad)
-        return 'programa'
+        return self.quadruples
 
     @_('')
     def pro0(self, p):
-        self.quadruples.append(Quadruple(None, None, 'goto', None))
+        self.quadruples.append(Quadruple(-1, -1, 'goto', -1))
         self.quad_counter += 1
 
     @_('')
-    def create_func_table(self, p):
-        self.function_table = {}
-
-    @_('')
-    def add_func_table(self, p):
+    def pro1(self, p):
         if p[-1] == 'main':
-            raise SyntaxError('Keyword main cannot be used as function name')
+            raise ReservedWordError('main', 'program name')
         self.program_name = p[-1]
         self.curr_scope = p[-1]
-        self.function_table = {p[-1]: {'return_type': None, 'vars': {}}}
+        self.function_table[p[-1]] = {'return_type': None,
+                                      'vars': {}, 'num_types': '00000'}
 
-    @_('class_declaration out_class var_declaration function_definition main')
+    @ _('class_declaration out_class var_declaration function_definition main')
     def declarations(self, p):
         return 'declarations'
 
-    @_('')
-    def out_class(self, p):
-        self.current_class = None
-        self.curr_scope = self.program_name
+    @ _('''CLASS ID cd1 inherits LCURL ATTRIBUTES attribute_declaration METHODS
+          method_definition RCURL class_declaration''', 'empty')
+    def class_declaration(self, p):
+        return 'class_declaration'
 
-    @_('LBRACKET CTE_I ad2 attr_multidim RBRACKET COLON simple_type ad4 SEMI attribute_declaration')
+    @ _('')
+    def cd1(self, p):
+        if p[-1] == 'main':
+            raise ReservedWordError('main', 'class name')
+        if p[-1] == self.program_name or p[-1] in self.class_table:
+            raise RedefinitionError(p[-1])
+        else:
+            self.class_table[p[-1]] = {'vars': {}}
+            self.current_class = p[-1]
+
+    @ _('INHERITS ID cd3', 'empty')
+    def inherits(self, p):
+        return 'inherits'
+
+    @ _('')
+    def cd3(self, p):
+        if not p[-1] in self.class_table:
+            raise UndeclaredIdError(p[-1])
+        else:
+            self.class_table[self.current_class] = copy.deepcopy(
+                self.class_table[p[-1]])
+
+    @ _('VAR ID ad1 attr_vector', 'VAR ID ad1 attr_simple_var', 'empty')
+    def attribute_declaration(self, p):
+        return 'attribute_declaration'
+
+    @ _('')
+    def ad1(self, p):
+        if (p[-1] == self.program_name or
+                p[-1] in self.class_table or
+                p[-1] in self.class_table[self.current_class]['vars']):
+            raise RedefinitionError(p[-1])
+        else:
+            self.stack_vars.append(p[-1])
+
+    @ _('''LBRACKET CTE_I ad2 attr_multidim RBRACKET COLON simple_type ad4 SEMI 
+           attribute_declaration''')
     def attr_vector(self, p):
         return 'vector'
 
-    @_('COMMA CTE_I ad3', 'empty')
-    def attr_multidim(self, p):
-        return 'multidim'
-
-    @_('attr_var_list COLON simple_type ad5 SEMI attribute_declaration')
-    def attr_simple_var(self, p):
-        return 'simple_var'
-
-    @_('COMMA ID ad1 var_list', 'empty')
-    def attr_var_list(self, p):
-        return 'var_list'
-
-    @_('VAR ID ad1 attr_vector', 'VAR ID ad1 attr_simple_var', 'empty')
-    def attribute_declaration(self, p):
-        return 'var_declaration'
-
-    @_('')
-    def ad1(self, p):
-        if p[-1] == self.program_name or p[-1] in self.class_table:
-            raise SyntaxError(f'Redefinition of {p[-1]}')
-        else:
-            self.var_stack.append(p[-1])
-
-    @_('')
+    @ _('')
     def ad2(self, p):
-        self.latest_var = self.var_stack.pop()
-        if self.class_table[self.current_class]['vars']:
-            self.class_table[self.current_class]['vars'][self.latest_var] = {
-                'size': p[-1]}
-        else:
-            self.class_table[self.current_class]['vars'] = {
-                self.latest_var: {'size': p[-1]}}
+        self.latest_var = self.stack_vars.pop()
+        self.class_table[self.current_class]['vars'][self.latest_var] = {
+            'size': p[-1]}
 
-    @_('')
+    @ _('COMMA CTE_I ad3', 'empty')
+    def attr_multidim(self, p):
+        return 'attr_multidim'
+
+    @ _('')
     def ad3(self, p):
         self.class_table[self.current_class]['vars'][self.latest_var]['size'] *= p[-1]
 
-    @_('')
+    @ _('')
     def ad4(self, p):
         self.class_table[self.current_class]['vars'][self.latest_var]['type'] = p[-1]
 
-    @_('')
+    @ _('attr_var_list COLON simple_type ad5 SEMI attribute_declaration')
+    def attr_simple_var(self, p):
+        return 'attr_simple_var'
+
+    @ _('COMMA ID ad1 attr_var_list', 'empty')
+    def attr_var_list(self, p):
+        return 'attr_var_list'
+
+    @ _('')
     def ad5(self, p):
-        while len(self.var_stack) > 0:
-            curr_var = self.var_stack.pop()
+        while len(self.stack_vars) > 0:
+            curr_var = self.stack_vars.pop()
+            if (curr_var == self.program_name or
+                    curr_var in self.class_table or
+                    curr_var in self.class_table[self.current_class]['vars']):
+                raise RedefinitionError(curr_var)
             self.class_table[self.current_class]['vars'][curr_var] = {
                 'type': p[-1]}
 
-    @_('def_type fd1_current_type FUNCTION ID md3 LPAREN m_parameters RPAREN LCURL md4 var_declaration statements RCURL md5 fd6 method_definition', 'empty')
+    @ _('''def_type fd1_current_type FUNCTION ID md3 LPAREN m_parameters 
+           RPAREN LCURL md4 var_declaration statements RCURL md5 fd6 
+           method_definition''', 'empty')
     def method_definition(self, p):
         return 'method_definition'
 
-    @_('')
+    @ _('')
     def md3(self, p):
-        if p[-1] in self.function_table or p[-1] in self.class_table:
-            raise SyntaxError(f'Redefinition of {p[-1]}')
+        if (p[-1] == self.program_name or
+                p[-1] in self.class_table or
+                p[-1] in self.class_table[self.current_class]['vars'] or
+                p[-1] in self.class_table[self.current_class]):
+            raise RedefinitionError(p[-1])
         else:
             self.class_table[self.current_class][p[-1]
                                                  ] = {'return_type': self.curr_func_type, 'vars': {}}
             self.last_func_added = p[-1]
             self.curr_scope = self.last_func_added
 
-    @_('')
+    @ _('')
     def md4(self, p):
         self.class_table[self.current_class][self.last_func_added]['start'] = self.quad_counter
 
-    @_('')
+    @ _('')
     def md5(self, p):
         # del self.function_table[self.last_func_added]['vars']
         pass
 
-    @_('ID p1 COLON simple_type m2 m_param_choose', 'empty')
+    @ _('ID p1 COLON simple_type m2 m_param_choose', 'empty')
     def m_parameters(self, p):
         return 'parameters'
 
-    @_('COMMA m_parameters', 'empty')
-    def m_param_choose(self, p):
-        return 'm_param_choose'
-
-    @_('')
+    @ _('')
     def m2(self, p):
         if self.latest_var in self.class_table[self.current_class][self.curr_scope]['vars']:
-            raise SyntaxError(
-                f'{self.latest_var} already declared as parameter')
+            raise RedefinitionError({self.latest_var})
         else:
             self.class_table[self.current_class][self.curr_scope]['vars'][self.latest_var] = {
                 'type': p[-1]}
 
-    @_('CLASS ID cd1 inherits LCURL ATTRIBUTES attribute_declaration METHODS method_definition RCURL class_declaration', 'empty')
-    def class_declaration(self, p):
-        return 'class_declaration'
+    @ _('COMMA m_parameters', 'empty')
+    def m_param_choose(self, p):
+        return 'm_param_choose'
 
-    @_('')
-    def cd1(self, p):
-        if p[-1] in self.class_table or p[-1] == 'main':
-            raise SyntaxError(f'Redefinition of {p[-1]}')
-        else:
-            self.class_table[p[-1]] = {'vars': {}}
-            self.current_class = p[-1]
+    @ _('')
+    def out_class(self, p):
+        self.current_class = None
+        self.curr_scope = self.program_name
 
-    @_('INHERITS ID cd3', 'empty')
-    def inherits(self, p):
-        return 'inherits'
-
-    @_('')
-    def cd3(self, p):
-        if not p[-1] in self.class_table:
-            raise SyntaxError(f'{p[-1]} is not a defined class')
-        else:
-            self.class_table[self.current_class] = copy.deepcopy(
-                self.class_table[p[-1]])
-
-    @_('VAR ID gvd1 vector', 'VAR ID gvd1 simple_var', 'empty')
+    @ _('VAR ID gvd1 vector', 'VAR ID gvd1 simple_var', 'empty')
     def var_declaration(self, p):
         return 'var_declaration'
 
-    @_('LBRACKET CTE_I gvd2 multidim RBRACKET COLON simple_type gvd4 SEMI var_declaration')
+    @ _('')
+    def gvd1(self, p):
+        if p[-1] == self.program_name or p[-1] in self.function_table or p[-1] in self.class_table:
+            raise RedefinitionError(p[-1])
+        elif self.current_class != None and p[-1] in self.class_table[self.current_class]:
+            raise RedefinitionError(p[-1])
+        else:
+            self.stack_vars.append(p[-1])
+
+    @ _('LBRACKET CTE_I gvd2 multidim RBRACKET COLON simple_type gvd4 SEMI var_declaration')
     def vector(self, p):
         return 'vector'
 
-    @_('COMMA CTE_I gvd3', 'empty')
-    def multidim(self, p):
-        return 'multidim'
-
-    @_('var_list COLON composite_type gvd5 SEMI', 'var_list COLON simple_type gvd5 SEMI var_declaration')
-    def simple_var(self, p):
-        return 'simple_var'
-
-    @_('COMMA ID gvd1 var_list', 'empty')
-    def var_list(self, p):
-        return 'var_list'
-
-    @_('')
-    def gvd1(self, p):
-        if p[-1] == self.program_name or p[-1] in self.function_table or p[-1] in self.class_table:
-            raise SyntaxError(f'Redefinition of {p[-1]}')
-        elif self.current_class != None and p[-1] in self.class_table[self.current_class]:
-            raise SyntaxError(f'Redefinition of {p[-1]}')
-        else:
-            self.var_stack.append(p[-1])
-
-    @_('')
+    @ _('')
     def gvd2(self, p):
-        self.latest_var = self.var_stack.pop()
+        self.latest_var = self.stack_vars.pop()
         # If we're dealing with a method of a class
         if self.current_class != None:
             self.class_table[self.current_class][self.curr_scope]['vars'][self.latest_var] = {
@@ -260,7 +275,19 @@ class DomasParser(Parser):
             self.function_table[self.curr_scope]['vars'] = {
                 self.latest_var: {'size': p[-1]}}
 
-    @_('')
+    @ _('COMMA CTE_I gvd3', 'empty')
+    def multidim(self, p):
+        return 'multidim'
+
+    @ _('var_list COLON composite_type gvd5 SEMI', 'var_list COLON simple_type gvd5 SEMI var_declaration')
+    def simple_var(self, p):
+        return 'simple_var'
+
+    @ _('COMMA ID gvd1 var_list', 'empty')
+    def var_list(self, p):
+        return 'var_list'
+
+    @ _('')
     def gvd3(self, p):
         # If we're dealing with a method of a class
         if self.current_class != None:
@@ -269,7 +296,7 @@ class DomasParser(Parser):
         else:
             self.function_table[self.curr_scope]['vars'][self.latest_var]['size'] *= p[-1]
 
-    @_('')
+    @ _('')
     def gvd4(self, p):
         # If we're dealing with a method of a class
         if self.current_class != None:
@@ -278,27 +305,32 @@ class DomasParser(Parser):
         else:
             self.function_table[self.curr_scope]['vars'][self.latest_var]['type'] = p[-1]
 
-    @_('')
+    @ _('')
     def gvd5(self, p):
-        while len(self.var_stack) > 0:
-            curr_var = self.var_stack.pop()
+        while len(self.stack_vars) > 0:
+            curr_var = self.stack_vars.pop()
             # If we're dealing with a method of a class
             if self.current_class != None:
                 self.class_table[self.current_class][self.curr_scope]['vars'][curr_var] = {
                     'type': p[-1]}
             else:
+                idx = self.types.index(p[-1])
+                num_types = self.function_table[self.curr_scope]['num_types']
+                offset = 1500 if self.curr_scope != self.program_name else 0
+                self.function_table[self.curr_scope]['num_types'] = num_types[:idx] + str(
+                    int(num_types[idx]) + 1) + num_types[idx + 1:]
                 self.function_table[self.curr_scope]['vars'][curr_var] = {
-                    'type': p[-1]}
+                    'type': p[-1], 'dir': idx * 300 + int(num_types[idx]) + offset}
 
-    @_('def_type fd1_current_type FUNCTION ID fd3_add_to_func_table LPAREN parameters RPAREN LCURL fd4 var_declaration statements RCURL fd5_borrar_var_table fd6 function_definition', 'empty')
+    @ _('def_type fd1_current_type FUNCTION ID fd3_add_to_func_table LPAREN parameters RPAREN LCURL fd4 var_declaration statements RCURL fd5_borrar_var_table fd6 function_definition', 'empty')
     def function_definition(self, p):
         return 'function_definition'
 
-    @_('')
+    @ _('')
     def fd1_current_type(self, p):
         self.curr_func_type = p[-1]
 
-    @_('')
+    @ _('')
     def fd3_add_to_func_table(self, p):
         if p[-1] in self.function_table or p[-1] in self.class_table or p[-1] in self.function_table[self.program_name]['vars']:
             raise SyntaxError(f'Redefinition of {p[-1]}')
@@ -306,58 +338,69 @@ class DomasParser(Parser):
             self.add_to_func_table(p[-1], self.curr_func_type)
             self.last_func_added = p[-1]
             self.curr_scope = self.last_func_added
-            self.function_table[self.program_name]['vars'][p[-1]
-                                                           ] = {'type': self.curr_func_type}
+            idx = self.types.index(self.curr_func_type)
+            num_types = self.function_table[self.program_name]['num_types']
+            print('here')
+            self.function_table[self.program_name]['num_types'] = num_types[:idx] + str(
+                int(num_types[idx]) + 1) + num_types[idx + 1:]
+            self.function_table[self.program_name]['vars'][p[-1]] = {
+                'type': self.curr_func_type, 'dir': idx * 300 + int(num_types[idx])}
 
-    @_('')
+    @ _('')
     def fd4(self, p):
         self.function_table[self.last_func_added]['start'] = self.quad_counter
 
-    @_('')
+    @ _('')
     def fd5_borrar_var_table(self, p):
         # del self.function_table[self.last_func_added]['vars']
         pass
 
-    @_('')
+    @ _('')
     def fd6(self, p):
-        self.quadruples.append(Quadruple(None, None, 'end_func', None))
+        self.quadruples.append(Quadruple(-1, -1, 'end_func', -1))
         self.quad_counter += 1
         self.temp_counter = 1
 
-    @_('statement statements', 'empty')
+    @ _('statement statements', 'empty')
     def statements(self, p):
         return 'statements'
 
-    @_('simple_type', 'VOID')
+    @ _('simple_type', 'VOID')
     def def_type(self, p):
         return p[0]
 
-    @_('INT', 'FLOAT', 'STRING', 'BOOL')
+    @ _('INT', 'FLOAT', 'STRING', 'BOOL')
     def simple_type(self, p):
         return p[0]
 
-    @_('ID')
+    @ _('ID')
     def composite_type(self, p):
         return p[0]
 
-    @_('ID p1 COLON simple_type p2 param_choose', 'empty')
+    @ _('ID p1 COLON simple_type p2 param_choose', 'empty')
     def parameters(self, p):
         return 'parameters'
 
-    @_('COMMA parameters', 'empty')
+    @ _('COMMA parameters', 'empty')
     def param_choose(self, p):
         return 'param_choose'
 
-    @_('')
+    @ _('')
     def p1(self, p):
         self.latest_var = p[-1]
 
-    @_('')
+    @ _('')
     def p2(self, p):
         if self.latest_var in self.function_table[self.curr_scope]['vars']:
             raise SyntaxError(f'{p[-1]} already declared as parameter')
+        idx = self.types.index(p[-1])
+        self.function_table[self.curr_scope]['params'] += str(idx)
+        num_types = self.function_table[self.curr_scope]['num_types']
+        offset = 1500 if self.curr_scope != self.program_name else 0
+        self.function_table[self.curr_scope]['num_types'] = num_types[:idx] + str(
+            int(num_types[idx]) + 1) + num_types[idx + 1:]
         self.function_table[self.curr_scope]['vars'][self.latest_var] = {
-            'type': p[-1]}
+            'type': p[-1], 'dir': idx * 300 + int(num_types[idx]) + offset}
 
     @_('assignment', 'call_to_void_function', 'function_returns', 'read', 'print',
        'decision_statement', 'repetition_statement')
@@ -391,7 +434,11 @@ class DomasParser(Parser):
         v_type = self.get_var_type(self.latest_var)
         # print('ass2 v_type', v_type)
         self.last_type = sm.checkOperation(v_type, lo['type'], '=')
-        q = Quadruple(lo['value'], None, '=', self.latest_var)
+        if self.latest_var in self.function_table[self.curr_scope]['vars']:
+            var_dir = self.function_table[self.curr_scope]['vars'][self.latest_var]['dir']
+        else:
+            var_dir = self.function_table[self.program_name]['vars'][self.latest_var]['dir']
+        q = Quadruple(lo['dir'], -1, '=', var_dir)
         self.quadruples.append(q)
         self.quad_counter += 1
         # for num, quad in enumerate(self.quadruples, start=1):
@@ -459,23 +506,40 @@ class DomasParser(Parser):
                 return {'value': curr_attr, 'type': cte_type}
         if hasattr(p, 'CTE_I'):
             cte_type = 'int'
+            if not p[0] in self.constant_table['int']:
+                self.constant_table['int'].append(p[0])
+            cons_dir = self.constant_table['int'].index(p[0]) + 4500
         elif hasattr(p, 'CTE_F'):
             cte_type = 'float'
+            if not p[0] in self.constant_table['float']:
+                self.constant_table['float'].append(p[0])
+            cons_dir = self.constant_table['float'].index(p[0]) + 4800
         elif hasattr(p, 'CTE_STRING'):
             cte_type = 'string'
+            if not p[0] in self.constant_table['string']:
+                self.constant_table['string'].append(p[0])
+            cons_dir = self.constant_table['string'].index(p[0]) + 5100
         elif hasattr(p, 'cte_bool'):
             cte_type = 'bool'
+            if not p[0] in self.constant_table['bool']:
+                self.constant_table['bool'].append(p[0])
+            cons_dir = self.constant_table['bool'].index(p[0]) + 5400
         elif hasattr(p, 'call_to_function'):
             # for num, quad in enumerate(self.quadruples, start=1):
             #     print(num, quad)
             return p[0]
         else:
-            if not self.check_variable_exists(p[len(p) - 1]):
-                raise SyntaxError(f'Variable {p[len(p) - 1]} is not declared')
+            if not self.check_variable_exists(p[0]):
+                raise SyntaxError(f'Variable {p[0]} is not declared')
             else:
-                cte_type = self.get_var_type(p[len(p) - 1])
+                cte_type = self.get_var_type(p[0])
+                if p[0] in self.function_table[self.curr_scope]['vars']:
+                    var_dir = self.function_table[self.curr_scope]['vars'][p[0]]['dir']
+                else:
+                    var_dir = self.function_table[self.program_name]['vars'][p[0]]['dir']
+                return {'value': p[0], 'type': cte_type, 'dir': var_dir}
 
-        return {'value': p[0], 'type': cte_type}
+        return {'value': p[0], 'type': cte_type, 'dir': cons_dir}
 
     @_('constant e2 operator e3 expression', 'constant e2', 'LPAREN e1 expression RPAREN e4', 'LPAREN e1 expression RPAREN e4 operator e3 expression')
     def expression(self, p):
@@ -582,17 +646,23 @@ class DomasParser(Parser):
 
     @_('')
     def r1(self, p):
-        self.quadruples.append(Quadruple(None, None, 'read', p[-1]))
+        self.quadruples.append(Quadruple(-1, -1, 'read', p[-1]))
         self.quad_counter += 1
 
     @_('function_or_method vf0 LPAREN func_params RPAREN fp2 fp3 ctf0')
     def call_to_function(self, p):
-        return {'value': 't' + str(self.temp_counter - 1), 'type': self.function_table[p[0]]['return_type']}
+        func_dir = self.function_table[self.program_name]['vars'][p[0]]['dir']
+        func_type = self.function_table[p[0]]['return_type']
+        return {'value': 't' + str(self.temp_counter - 1), 'type': func_type, 'dir': func_dir}
 
     @_('')
     def ctf0(self, p):
+        func_dir = self.function_table[self.program_name]['vars'][self.last_func_added]['dir']
+        func_type = self.function_table[self.program_name]['vars'][self.last_func_added]['type']
+        idx = self.types.index(func_type)
+        t_dir = idx * 300 + self.temp_counter + 3000
         self.quadruples.append(
-            Quadruple(self.last_func_added, None, '=', 't' + str(self.temp_counter)))
+            Quadruple(func_dir, -1, '=', t_dir))
         self.quad_counter += 1
         self.temp_counter += 1
 
@@ -641,19 +711,21 @@ class DomasParser(Parser):
             lo = self.stack_operands.pop()
             op = self.stack_operators.pop()
             self.last_type = sm.checkOperation(lo['type'], ro['type'], op)
+            idx = self.types.index(self.last_type)
+            t_dir = idx * 300 + self.temp_counter + 3000
             self.quadruples.append(
-                Quadruple(lo['value'], ro['value'], op, 't' + str(self.temp_counter)))
+                Quadruple(lo['dir'], ro['dir'], op, t_dir))
             self.temp_counter += 1
             self.quad_counter += 1
             made_quad = True
         if made_quad:
             last_quad = self.quadruples[-1]
             self.quadruples.append(
-                Quadruple(None, None, 'print', last_quad.res))
+                Quadruple(-1, -1, 'print', last_quad.res))
             self.quad_counter += 1
         else:
             self.quadruples.append(
-                Quadruple(None, None, 'print', self.stack_operands.pop()['value']))
+                Quadruple(-1, -1, 'print', self.stack_operands.pop()['dir']))
             self.quad_counter += 1
 
     @_('TRUE', 'FALSE')
@@ -683,7 +755,7 @@ class DomasParser(Parser):
                 'Expression to evaluate in if statement is not boolean')
         else:
             last_quad = self.quadruples[-1].res
-            self.quadruples.append(Quadruple(None, last_quad, 'goto_f', None))
+            self.quadruples.append(Quadruple(-1, last_quad, 'goto_f', -1))
             self.jumps.append(self.quad_counter)
             self.quad_counter += 1
         # print('Cuadruplos:')
@@ -697,7 +769,7 @@ class DomasParser(Parser):
     @_('')
     def dec2(self, p):
         falso = self.jumps.pop()
-        self.quadruples.append(Quadruple(None, None, 'goto', None))
+        self.quadruples.append(Quadruple(-1, -1, 'goto', -1))
         self.jumps.append(self.quad_counter)
         self.quad_counter += 1
         self.quadruples[falso - 1].res = self.quad_counter
@@ -743,7 +815,7 @@ class DomasParser(Parser):
                 'Expression to evaluate in if statement is not boolean')
         else:
             last_quad = self.quadruples[-1].res
-            self.quadruples.append(Quadruple(None, last_quad, 'goto_f', None))
+            self.quadruples.append(Quadruple(-1, last_quad, 'goto_f', -1))
             self.jumps.append(self.quad_counter)
             self.quad_counter += 1
 
@@ -752,7 +824,7 @@ class DomasParser(Parser):
         # print(f'con2 line {sys._getframe().f_lineno}')
         falso = self.jumps.pop()
         ret = self.jumps.pop()
-        self.quadruples.append(Quadruple(None, None, 'goto', ret))
+        self.quadruples.append(Quadruple(-1, -1, 'goto', ret))
         self.quadruples[falso - 1].res = self.quad_counter + 1
         self.quad_counter += 1
         # for num, quad in enumerate(self.quadruples, start=1):
@@ -812,7 +884,7 @@ class DomasParser(Parser):
             lo = self.jumps[-1]
             last_quad = self.quadruples[-1].res
             self.quadruples.append(
-                Quadruple('r' + str(lo), last_quad, '<=', None))
+                Quadruple('r' + str(lo), last_quad, '<=', -1))
             self.jumps.append(self.quad_counter)
             self.quad_counter += 1
         else:
@@ -826,14 +898,14 @@ class DomasParser(Parser):
     @_('')
     def nc2(self, p):
         last_quad = self.quadruples[-1].res
-        self.quadruples.append(Quadruple(None, last_quad, 'goto_f', None))
+        self.quadruples.append(Quadruple(-1, last_quad, 'goto_f', -1))
         self.jumps.append(self.quad_counter)
         self.quad_counter += 1
 
     @_('')
     def nc3(self, p):
-        #print(f'nc3 line {sys._getframe().f_lineno}')
-        #print('Saltos:', self.jumps)
+        # print(f'nc3 line {sys._getframe().f_lineno}')
+        # print('Saltos:', self.jumps)
         falso = self.jumps.pop()
         cond = self.jumps.pop()
         to_update = self.jumps.pop()
@@ -841,7 +913,7 @@ class DomasParser(Parser):
         self.quadruples.append(
             Quadruple('r' + str(to_update), 1, '+', 'r' + str(to_update)))
         self.quad_counter += 1
-        self.quadruples.append(Quadruple(None, None, 'goto', cond))
+        self.quadruples.append(Quadruple(-1, -1, 'goto', cond))
         self.quad_counter += 1
         self.quadruples[falso - 1].res = self.quad_counter
 
@@ -858,12 +930,12 @@ class DomasParser(Parser):
         if made_quad:
             last_quad = self.quadruples[-1]
             self.quadruples.append(
-                Quadruple(None, None, 'return', last_quad.res))
+                Quadruple(-1, -1, 'return', last_quad.res))
             self.quad_counter += 1
             self.stack_operands.pop()
         else:
             self.quadruples.append(
-                Quadruple(None, None, 'return',
+                Quadruple(-1, -1, 'return',
                           self.stack_operands.pop()['value']))
             self.quad_counter += 1
 
@@ -874,7 +946,7 @@ class DomasParser(Parser):
     @ _('')
     def fp2(self, p):
         self.quadruples.append(
-            Quadruple(self.last_func_added, None, 'gosub', None))
+            Quadruple(self.last_func_added, -1, 'gosub', -1))
         self.quad_counter += 1
 
     @ _('')
@@ -885,9 +957,9 @@ class DomasParser(Parser):
 
     @ _('')
     def vf0(self, p):
-        #print('last_func_added', p[-1])
+        # print('last_func_added', p[-1])
         self.last_func_added = p[-1]
-        self.quadruples.append(Quadruple(p[-1], None, 'era', None))
+        self.quadruples.append(Quadruple(p[-1], -1, 'era', -1))
         self.quad_counter += 1
 
     @ _('expression fp1 param_list', 'empty')
@@ -902,21 +974,23 @@ class DomasParser(Parser):
             lo = self.stack_operands.pop()
             op = self.stack_operators.pop()
             self.last_type = sm.checkOperation(lo['type'], ro['type'], op)
+            idx = self.types.index(self.last_type)
+            t_dir = idx * 300 + self.temp_counter + 3000
             self.quadruples.append(
-                Quadruple(lo['value'], ro['value'], op, 't' + str(self.temp_counter)))
+                Quadruple(lo['dir'], ro['dir'], op, t_dir))
             self.temp_counter += 1
             self.quad_counter += 1
             made_quad = True
         if made_quad:
             last_quad = self.quadruples[-1]
             self.quadruples.append(
-                Quadruple(last_quad.res, None, 'param', f'param{self.param_counter}'))
+                Quadruple(last_quad.res, -1, 'param', f'param{self.param_counter}'))
             self.quad_counter += 1
             self.param_counter += 1
         else:
             val = self.stack_operands.pop()
             self.quadruples.append(
-                Quadruple(val['value'], None, 'param', f'param{self.param_counter}'))
+                Quadruple(val['dir'], -1, 'param', f'param{self.param_counter}'))
             self.quad_counter += 1
             self.param_counter += 1
 
@@ -930,7 +1004,7 @@ class DomasParser(Parser):
 
     @ _('')
     def main2(self, p):
-        self.quadruples.append(Quadruple(None, None, 'end', None))
+        self.quadruples.append(Quadruple(-1, -1, 'end', -1))
 
     @ _('')
     def m1_add_to_func_table(self, p):
@@ -942,4 +1016,8 @@ class DomasParser(Parser):
         pass
 
     def error(self, p):
-        print("Syntax error in input!", p.lineno, p)
+        print(p.value in DomasLexer.reserved_words)
+        if p.value in DomasLexer.reserved_words:
+            raise ReservedWordError(p.value)
+        else:
+            print("Syntax error in input!", p.lineno, p)

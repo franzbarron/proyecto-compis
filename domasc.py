@@ -1,5 +1,6 @@
 from lexer_parser.domas_lexer import DomasLexer
 from lexer_parser.domas_parser import DomasParser
+# from domas_parser import DomasParser
 import sys
 
 
@@ -15,6 +16,9 @@ if __name__ == '__main__':
         try:
             result = parser.parse(lexer.tokenize(fp.read()))
             print(result)
+            outfile = open('a.domas', 'w')
+            for quad in result:
+                outfile.write(str(quad) + '\n')
         except EOFError:
             pass
         except Exception as err:

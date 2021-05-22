@@ -367,6 +367,10 @@ def do_gosub(left, _, __):
     global ip, local_mems, temp_mems, ip_stack
     local_mems.append(aux_loc_mem)
     temp_mems.append(aux_temp_mem)
+    print(len(local_mems))
+    if len(local_mems) > 25:
+        print('Too deeep dude')
+        exit(1)
     ip_stack.append(ip)
     ip = int(func_dir[left]['start'])
 
@@ -375,10 +379,10 @@ def do_era(left, _, __):
     global aux_loc_mem, aux_temp_mem, next_func
     next_func = left
     ints, floats, strings, bools, _voids, * \
-        objs = list(func_dir[left]['num_types'])
+        objs = func_dir[left]['num_types'].split('\u001f')
     aux_loc_mem = (Memory(ints, floats, strings, bools))
     ints, floats, strings, bools, _voids, * \
-        objs = list(func_dir[left]['num_temps'])
+        objs = func_dir[left]['num_temps'].split('\u001f')
     aux_temp_mem = (Memory(ints, floats, strings, bools))
 
     # print('era', aux_temp_mem)
@@ -466,10 +470,12 @@ def run_quad(op, left, right, res):
 
 
 if __name__ == '__main__':
-    with open('a.domas') as infile:
+    filename = sys.argv[1]
+
+    with open(filename) as infile:
         # print(list(infile.readline().split(' ')[2]))
         ints, floats, strings, bools, _voids, * \
-            objs = list(infile.readline().split(' ')[2])
+            objs = infile.readline().split(' ')[2].split('\u001f')
         global_mem = Memory(ints, floats, strings, bools)
         while True:
             readline = infile.readline()
@@ -477,10 +483,10 @@ if __name__ == '__main__':
                 break
             reconstruct_func_dir(readline)
         ints, floats, strings, bools, _voids, * \
-            objs = list(func_dir['main']['num_types'])
+            objs = func_dir['main']['num_types'].split('\u001f')
         local_mems.append(Memory(ints, floats, strings, bools))
         ints, floats, strings, bools, _voids, * \
-            objs = list(func_dir['main']['num_temps'])
+            objs = func_dir['main']['num_temps'].split('\u001f')
         temp_mems.append(Memory(ints, floats, strings, bools))
         while True:
             readline = infile.readline()

@@ -141,6 +141,8 @@ def do_multiplication(left, right, res):
                             ].get_value_of_address(int(left) % 1500)
     right_dir_val = memories[str(int(right) // 1500)
                              ].get_value_of_address(int(right) % 1500)
+
+    # print(left_dir_val, right_dir_val)
     sum_res = left_dir_val * right_dir_val
     memories[str(int(res) // 1500)].set_value_in_address(int(res) %
                                                          1500, sum_res)
@@ -367,7 +369,7 @@ def do_gosub(left, _, __):
     global ip, local_mems, temp_mems, ip_stack
     local_mems.append(aux_loc_mem)
     temp_mems.append(aux_temp_mem)
-    print(len(local_mems))
+    # print(len(local_mems))
     if len(local_mems) > 25:
         print('Too deeep dude')
         exit(1)

@@ -21,6 +21,8 @@ class DomasParser(Parser):
     stack_operands = []
     stack_operators = []
     stack_vars = []
+    tmp_s_operands = []
+    tmp_s_operators = []
     # Lists
     quadruples = []
     jumps = []
@@ -62,7 +64,7 @@ class DomasParser(Parser):
 
     def update_num_temps(self, func_num_temps, type_idx):
         lst = func_num_temps.split('\u001f')
-        print(lst[type_idx])
+        # print(lst[type_idx])
         lst[type_idx] = str(int(lst[type_idx]) + 1)
         return '\u001f'.join(lst)
 
@@ -382,7 +384,7 @@ class DomasParser(Parser):
             self.function_table[self.program_name]['num_types'] = self.update_num_temps(
                 num_types, idx)
             self.function_table[self.program_name]['vars'][p[-1]] = {
-                'type': self.curr_func_type, 'dir': idx * 300 + int(num_types.split('\u001f')[idx])}
+                'type': self.curr_func_type, 'dir': 0, 'real_dir': idx * 300 + int(num_types.split('\u001f')[idx])}
 
     @ _('')
     def fd4(self, p):
@@ -721,15 +723,27 @@ class DomasParser(Parser):
         self.quadruples.append(Quadruple(-1, -1, 'read', p[-1]))
         self.quad_counter += 1
 
-    @_('function_or_method vf0 LPAREN func_params RPAREN fp2 fp3 ctf0')
+    @_('function_or_method vf0 ctf2 LPAREN func_params RPAREN fp2 fp3 ctf0 ctf3')
     def call_to_function(self, p):
         func_dir = self.function_table[self.program_name]['vars'][p[0]]['dir']
         func_type = self.function_table[p[0]]['return_type']
         return {'value': 't' + str(self.temp_counter - 1), 'type': func_type, 'dir': func_dir}
 
     @_('')
+    def ctf2(self, p):
+        self.tmp_s_operands = copy.copy(self.stack_operands)
+        self.tmp_s_operators = copy.copy(self.stack_operators)
+        self.stack_operands.clear()
+        self.stack_operators.clear()
+
+    @_('')
+    def ctf3(self, p):
+        self.stack_operands = self.tmp_s_operands
+        self.stack_operators = self.tmp_s_operators
+
+    @_('')
     def ctf0(self, p):
-        func_dir = self.function_table[self.program_name]['vars'][self.called_func]['dir']
+        func_dir = self.function_table[self.program_name]['vars'][self.called_func]['real_dir']
         func_type = self.function_table[self.program_name]['vars'][self.called_func]['type']
         idx = self.types.index(func_type)
         num_temps = self.function_table[self.curr_scope]['num_temps']
@@ -739,6 +753,7 @@ class DomasParser(Parser):
                                 [idx]) + 600 * len(self.types)
         self.quadruples.append(
             Quadruple(func_dir, -1, '=', t_dir))
+        self.function_table[self.program_name]['vars'][self.called_func]['dir'] = t_dir
         self.quad_counter += 1
         self.temp_counter += 1
 
@@ -1028,13 +1043,12 @@ class DomasParser(Parser):
         if made_quad:
             last_quad = self.quadruples[-1]
             self.quadruples.append(
-                Quadruple(last_quad.res, -1, 'return', self.function_table[self.program_name]['vars'][self.curr_scope]['dir']))
+                Quadruple(last_quad.res, -1, 'return', self.function_table[self.program_name]['vars'][self.curr_scope]['real_dir']))
             self.quad_counter += 1
             self.stack_operands.pop()
         else:
             self.quadruples.append(
-                Quadruple(-1, -1, 'return',
-                          self.stack_operands.pop()['dir']))
+                Quadruple(self.stack_operands.pop()['dir'], -1, 'return', self.function_table[self.program_name]['vars'][self.curr_scope]['real_dir']))
             self.quad_counter += 1
 
     @_('')
@@ -1055,6 +1069,7 @@ class DomasParser(Parser):
     def fp3(self, p):
         # for num, quad in enumerate(self.quadruples, start=1):
         #     print(num, quad)
+        print('fp3')
         self.param_counter = 0
 
     @ _('')

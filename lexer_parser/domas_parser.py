@@ -1110,12 +1110,22 @@ class DomasParser(Parser):
             made_quad = True
         if made_quad:
             last_quad = self.quadruples[-1]
+            if self.param_counter == len(self.function_table[self.called_func]['params']):
+                raise SyntaxError('Too many params')
+            param_type = (last_quad.res % 1500) // 300
+            if param_type != int(self.function_table[self.called_func]['params'][self.param_counter]):
+                raise TypeError('Type mismatch')
             self.quadruples.append(
                 Quadruple(last_quad.res, -1, 'param', self.param_counter))
             self.quad_counter += 1
             self.param_counter += 1
         else:
             val = self.stack_operands.pop()
+            if self.param_counter == len(self.function_table[self.called_func]['params']):
+                raise SyntaxError('Too many params')
+            param_type = (val['dir'] % 1500) // 300
+            if param_type != int(self.function_table[self.called_func]['params'][self.param_counter]):
+                raise TypeError('Type mismatch')
             self.quadruples.append(
                 Quadruple(val['dir'], -1, 'param', self.param_counter))
             self.quad_counter += 1

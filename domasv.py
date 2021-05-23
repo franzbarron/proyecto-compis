@@ -447,7 +447,7 @@ def do_read(_, __, res):
         else:
             read_values_stack.append(in_line)
 
-    val = read_values_stack.pop(0)
+    raw_val = read_values_stack.pop(0)
 
     local_mem = local_mems[-1]
     temp_mem = temp_mems[-1]
@@ -459,19 +459,19 @@ def do_read(_, __, res):
     }
     try:
         if int(res) % 1500 < 300:
-            val = int(val)
+            val = int(raw_val)
             memories[str(int(res) // 1500)].set_value_in_address(int(res) %
                                                                  1500, val)
         elif int(res) % 1500 < 600:
-            val = float(val)
+            val = float(raw_val)
             memories[str(int(res) // 1500)].set_value_in_address(int(res) %
                                                                  1500, val)
         elif int(res) % 1500 < 900:
-            val = str(val)
+            val = str(raw_val)
             memories[str(int(res) // 1500)].set_value_in_address(int(res) %
                                                                  1500, val)
         elif int(res) % 1500 < 1200:
-            val = bool(val)
+            val = bool(raw_val)
             memories[str(int(res) // 1500)].set_value_in_address(int(res) %
                                                                  1500, val)
     except Exception as e:

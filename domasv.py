@@ -75,6 +75,7 @@ aux_loc_mem = None
 aux_temp_mem = None
 next_func = None
 ip_stack = []
+read_values_stack = []
 
 
 def reconstruct_func_dir(line):
@@ -438,6 +439,45 @@ def do_end(_, __, ___):
     exit(0)
 
 
+def do_read(_, __, res):
+    if len(read_values_stack) == 0:
+        in_line = sys.stdin.readline().rstrip('\n')
+        if int(res) % 1500 < 600 or int(res) % 1500 >= 900:
+            read_values_stack.extend(in_line.split(' '))
+        else:
+            read_values_stack.append(in_line)
+
+    val = read_values_stack.pop(0)
+
+    local_mem = local_mems[-1]
+    temp_mem = temp_mems[-1]
+    memories = {
+        '0': global_mem,
+        '1': local_mem,
+        '2': temp_mem,
+        '3': constants_mem
+    }
+    try:
+        if int(res) % 1500 < 300:
+            val = int(val)
+            memories[str(int(res) // 1500)].set_value_in_address(int(res) %
+                                                                 1500, val)
+        elif int(res) % 1500 < 600:
+            val = float(val)
+            memories[str(int(res) // 1500)].set_value_in_address(int(res) %
+                                                                 1500, val)
+        elif int(res) % 1500 < 900:
+            val = str(val)
+            memories[str(int(res) // 1500)].set_value_in_address(int(res) %
+                                                                 1500, val)
+        elif int(res) % 1500 < 1200:
+            val = bool(val)
+            memories[str(int(res) // 1500)].set_value_in_address(int(res) %
+                                                                 1500, val)
+    except Exception as e:
+        print(e)
+
+
 def run_quad(op, left, right, res):
     global ip
     operations = {
@@ -457,7 +497,7 @@ def run_quad(op, left, right, res):
         'goto': do_goto,
         'goto_f': do_goto_f,
         'print': do_print,
-        # 'read': do_read,
+        'read': do_read,
         'gosub': do_gosub,
         'era': do_era,
         'param': do_param,

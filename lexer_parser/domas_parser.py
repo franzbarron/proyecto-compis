@@ -720,7 +720,13 @@ class DomasParser(Parser):
 
     @_('')
     def r1(self, p):
-        self.quadruples.append(Quadruple(-1, -1, 'read', p[-1]))
+        if p[-1] in self.function_table[self.curr_scope]['vars']:
+            var_addr = self.function_table[self.curr_scope]['vars'][p[-1]]['dir']
+        elif p[-1] in self.function_table[self.program_name]['vars']:
+            var_addr = self.function_table[self.program_name]['vars'][p[-1]]['dir']
+        else:
+            raise UndeclaredIdError(p[-1])
+        self.quadruples.append(Quadruple(-1, -1, 'read', var_addr))
         self.quad_counter += 1
 
     @_('function_or_method vf0 ctf2 LPAREN func_params RPAREN fp2 fp3 ctf0 ctf3')

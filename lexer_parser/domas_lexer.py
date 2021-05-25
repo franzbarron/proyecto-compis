@@ -1,4 +1,5 @@
 from sly import Lexer
+import sys
 
 
 class DomasLexer(Lexer):
@@ -93,3 +94,15 @@ class DomasLexer(Lexer):
     def error(self, t):
         print("Illegal character '%s'" % t.value[0])
         self.index += 1
+
+
+if __name__ == '__main__':
+    lexer = DomasLexer()
+    filename = 'tests/test.txt'
+
+    if(len(sys.argv) > 1):
+        filename = sys.argv[1]
+
+    with open(filename) as fp:
+        for tok in lexer.tokenize(fp.read()):
+            print('type=%r, value=%r' % (tok.type, tok.value))

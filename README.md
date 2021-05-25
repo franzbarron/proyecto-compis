@@ -1,29 +1,63 @@
-# proyecto-compis
+# Domas
 
-Proyecto final de la clase de Diseño de compiladores
+Domas is a programming language developed for the final project of the Compiler Design course. The project comprises two programs, a compiler and a virtual machine, similar to the way Java works.
 
-## Equipo
+## Team
 
 - Paola Masiel Rijo Martínez A00823735  
 - Juan Francisco Barrón Camacho A00823939
 
-## Requisitos
+## Requirements
 
 Las siguientes herramientas son necesarias:
 
 - [Python 3.6 o superior](https://www.python.org/downloads/)
 - [SLY](https://github.com/dabeaz/sly)
 
-## Ejecución del analizador léxico-sintáctico
+## Running the Compiler
 
-Para ejecutar el analizador léxico-sintáctico:
-
-```
-python lexer_parser.py <ruta/al/archivo>
-```
-
-Se incluye una carpeta con archivos de prueba en el repositorio, por ejemplo:
+To compile code, run the following command:
 
 ```
-python lexer_parser.py ./tests/test.txt
+python domasc.py <path/to/file>
 ```
+
+If one were to compile code in a file inside the tests folder, for example, one would run:
+
+```
+python domasc.py tests/hello.txt
+```
+
+On a successful compilation, a new file will be generated on the working directory with a .domas extension. This file contains bytecode that can be executed by the virtual machine. The name of this file is the same as the name of the program in the code. For example, code that begins with the line
+
+```
+program Hello;
+```
+
+will be compiled into Hello.domas.
+
+## Running the Virtual Machine
+
+To execute the compiled program, simply run the following command:
+
+```
+python domasv.py <path/to/domas/file>
+```
+
+For example, to execute the compiled result of our hello program, one would run
+
+```
+python domasv.py Hello.domas
+```
+
+## Running the Lexer
+
+To execute only the lexer, which is located in the lexer_parser folder, you can run the following command:
+
+```
+python domas_lexer.py <path/to/file>
+```
+
+
+
+

@@ -26,6 +26,7 @@ class Memory:
             self.strings[idx] = bool(values)
 
     def get_value_of_address(self, address):
+        # print(address)
         if address < 300:
             return self.ints[address]
         elif address < 600:
@@ -76,6 +77,7 @@ aux_temp_mem = None
 next_func = None
 ip_stack = []
 read_values_stack = []
+mem_size = 0
 
 
 def reconstruct_func_dir(line):
@@ -120,13 +122,13 @@ def do_addition(left, right, res):
         '2': temp_mem,
         '3': constants_mem
     }
-    left_dir_val = memories[str(int(left) // 1500)
-                            ].get_value_of_address(int(left) % 1500)
-    right_dir_val = memories[str(int(right) // 1500)
-                             ].get_value_of_address(int(right) % 1500)
+    left_dir_val = memories[str(int(left) // mem_size)
+                            ].get_value_of_address(int(left) % mem_size)
+    right_dir_val = memories[str(int(right) // mem_size)
+                             ].get_value_of_address(int(right) % mem_size)
     sum_res = left_dir_val + right_dir_val
-    memories[str(int(res) // 1500)].set_value_in_address(int(res) %
-                                                         1500, sum_res)
+    memories[str(int(res) // mem_size)].set_value_in_address(int(res) %
+                                                             mem_size, sum_res)
 
 
 def do_multiplication(left, right, res):
@@ -138,15 +140,15 @@ def do_multiplication(left, right, res):
         '2': temp_mem,
         '3': constants_mem
     }
-    left_dir_val = memories[str(int(left) // 1500)
-                            ].get_value_of_address(int(left) % 1500)
-    right_dir_val = memories[str(int(right) // 1500)
-                             ].get_value_of_address(int(right) % 1500)
+    left_dir_val = memories[str(int(left) // mem_size)
+                            ].get_value_of_address(int(left) % mem_size)
+    right_dir_val = memories[str(int(right) // mem_size)
+                             ].get_value_of_address(int(right) % mem_size)
 
     # print(left_dir_val, right_dir_val)
     sum_res = left_dir_val * right_dir_val
-    memories[str(int(res) // 1500)].set_value_in_address(int(res) %
-                                                         1500, sum_res)
+    memories[str(int(res) // mem_size)].set_value_in_address(int(res) %
+                                                             mem_size, sum_res)
 
 
 def do_subtraction(left, right, res):
@@ -158,13 +160,13 @@ def do_subtraction(left, right, res):
         '2': temp_mem,
         '3': constants_mem
     }
-    left_dir_val = memories[str(int(left) // 1500)
-                            ].get_value_of_address(int(left) % 1500)
-    right_dir_val = memories[str(int(right) // 1500)
-                             ].get_value_of_address(int(right) % 1500)
+    left_dir_val = memories[str(int(left) // mem_size)
+                            ].get_value_of_address(int(left) % mem_size)
+    right_dir_val = memories[str(int(right) // mem_size)
+                             ].get_value_of_address(int(right) % mem_size)
     sum_res = left_dir_val - right_dir_val
-    memories[str(int(res) // 1500)].set_value_in_address(int(res) %
-                                                         1500, sum_res)
+    memories[str(int(res) // mem_size)].set_value_in_address(int(res) %
+                                                             mem_size, sum_res)
 
 
 def do_division(left, right, res):
@@ -176,13 +178,13 @@ def do_division(left, right, res):
         '2': temp_mem,
         '3': constants_mem
     }
-    left_dir_val = memories[str(int(left) // 1500)
-                            ].get_value_of_address(int(left) % 1500)
-    right_dir_val = memories[str(int(right) // 1500)
-                             ].get_value_of_address(int(right) % 1500)
+    left_dir_val = memories[str(int(left) // mem_size)
+                            ].get_value_of_address(int(left) % mem_size)
+    right_dir_val = memories[str(int(right) // mem_size)
+                             ].get_value_of_address(int(right) % mem_size)
     sum_res = left_dir_val / right_dir_val
-    memories[str(int(res) // 1500)].set_value_in_address(int(res) %
-                                                         1500, sum_res)
+    memories[str(int(res) // mem_size)].set_value_in_address(int(res) %
+                                                             mem_size, sum_res)
 
 
 def compare_gt(left, right, res):
@@ -196,13 +198,13 @@ def compare_gt(left, right, res):
         '2': temp_mem,
         '3': constants_mem
     }
-    left_dir_val = memories[str(int(left) // 1500)
-                            ].get_value_of_address(int(left) % 1500)
-    right_dir_val = memories[str(int(right) // 1500)
-                             ].get_value_of_address(int(right) % 1500)
+    left_dir_val = memories[str(int(left) // mem_size)
+                            ].get_value_of_address(int(left) % mem_size)
+    right_dir_val = memories[str(int(right) // mem_size)
+                             ].get_value_of_address(int(right) % mem_size)
     comp_res = left_dir_val > right_dir_val
-    memories[str(int(res) // 1500)].set_value_in_address(int(res) %
-                                                         1500, comp_res)
+    memories[str(int(res) // mem_size)].set_value_in_address(int(res) %
+                                                             mem_size, comp_res)
 
 
 def compare_lt(left, right, res):
@@ -214,13 +216,13 @@ def compare_lt(left, right, res):
         '2': temp_mem,
         '3': constants_mem
     }
-    left_dir_val = memories[str(int(left) // 1500)
-                            ].get_value_of_address(int(left) % 1500)
-    right_dir_val = memories[str(int(right) // 1500)
-                             ].get_value_of_address(int(right) % 1500)
+    left_dir_val = memories[str(int(left) // mem_size)
+                            ].get_value_of_address(int(left) % mem_size)
+    right_dir_val = memories[str(int(right) // mem_size)
+                             ].get_value_of_address(int(right) % mem_size)
     comp_res = left_dir_val < right_dir_val
-    memories[str(int(res) // 1500)].set_value_in_address(int(res) %
-                                                         1500, comp_res)
+    memories[str(int(res) // mem_size)].set_value_in_address(int(res) %
+                                                             mem_size, comp_res)
 
 
 def compare_eq(left, right, res):
@@ -232,13 +234,13 @@ def compare_eq(left, right, res):
         '2': temp_mem,
         '3': constants_mem
     }
-    left_dir_val = memories[str(int(left) // 1500)
-                            ].get_value_of_address(int(left) % 1500)
-    right_dir_val = memories[str(int(right) // 1500)
-                             ].get_value_of_address(int(right) % 1500)
+    left_dir_val = memories[str(int(left) // mem_size)
+                            ].get_value_of_address(int(left) % mem_size)
+    right_dir_val = memories[str(int(right) // mem_size)
+                             ].get_value_of_address(int(right) % mem_size)
     comp_res = left_dir_val == right_dir_val
-    memories[str(int(res) // 1500)].set_value_in_address(int(res) %
-                                                         1500, comp_res)
+    memories[str(int(res) // mem_size)].set_value_in_address(int(res) %
+                                                             mem_size, comp_res)
 
 
 def compare_ne(left, right, res):
@@ -250,13 +252,13 @@ def compare_ne(left, right, res):
         '2': temp_mem,
         '3': constants_mem
     }
-    left_dir_val = memories[str(int(left) // 1500)
-                            ].get_value_of_address(int(left) % 1500)
-    right_dir_val = memories[str(int(right) // 1500)
-                             ].get_value_of_address(int(right) % 1500)
+    left_dir_val = memories[str(int(left) // mem_size)
+                            ].get_value_of_address(int(left) % mem_size)
+    right_dir_val = memories[str(int(right) // mem_size)
+                             ].get_value_of_address(int(right) % mem_size)
     comp_res = left_dir_val != right_dir_val
-    memories[str(int(res) // 1500)].set_value_in_address(int(res) %
-                                                         1500, comp_res)
+    memories[str(int(res) // mem_size)].set_value_in_address(int(res) %
+                                                             mem_size, comp_res)
 
 
 def compare_geq(left, right, res):
@@ -268,13 +270,13 @@ def compare_geq(left, right, res):
         '2': temp_mem,
         '3': constants_mem
     }
-    left_dir_val = memories[str(int(left) // 1500)
-                            ].get_value_of_address(int(left) % 1500)
-    right_dir_val = memories[str(int(right) // 1500)
-                             ].get_value_of_address(int(right) % 1500)
+    left_dir_val = memories[str(int(left) // mem_size)
+                            ].get_value_of_address(int(left) % mem_size)
+    right_dir_val = memories[str(int(right) // mem_size)
+                             ].get_value_of_address(int(right) % mem_size)
     comp_res = left_dir_val >= right_dir_val
-    memories[str(int(res) // 1500)].set_value_in_address(int(res) %
-                                                         1500, comp_res)
+    memories[str(int(res) // mem_size)].set_value_in_address(int(res) %
+                                                             mem_size, comp_res)
 
 
 def compare_leq(left, right, res):
@@ -286,13 +288,13 @@ def compare_leq(left, right, res):
         '2': temp_mem,
         '3': constants_mem
     }
-    left_dir_val = memories[str(int(left) // 1500)
-                            ].get_value_of_address(int(left) % 1500)
-    right_dir_val = memories[str(int(right) // 1500)
-                             ].get_value_of_address(int(right) % 1500)
+    left_dir_val = memories[str(int(left) // mem_size)
+                            ].get_value_of_address(int(left) % mem_size)
+    right_dir_val = memories[str(int(right) // mem_size)
+                             ].get_value_of_address(int(right) % mem_size)
     comp_res = left_dir_val <= right_dir_val
-    memories[str(int(res) // 1500)].set_value_in_address(int(res) %
-                                                         1500, comp_res)
+    memories[str(int(res) // mem_size)].set_value_in_address(int(res) %
+                                                             mem_size, comp_res)
 
 
 def do_or(left, right, res):
@@ -304,13 +306,13 @@ def do_or(left, right, res):
         '2': temp_mem,
         '3': constants_mem
     }
-    left_dir_val = memories[str(int(left) // 1500)
-                            ].get_value_of_address(int(left) % 1500)
-    right_dir_val = memories[str(int(right) // 1500)
-                             ].get_value_of_address(int(right) % 1500)
+    left_dir_val = memories[str(int(left) // mem_size)
+                            ].get_value_of_address(int(left) % mem_size)
+    right_dir_val = memories[str(int(right) // mem_size)
+                             ].get_value_of_address(int(right) % mem_size)
     comp_res = left_dir_val or right_dir_val
-    memories[str(int(res) // 1500)].set_value_in_address(int(res) %
-                                                         1500, comp_res)
+    memories[str(int(res) // mem_size)].set_value_in_address(int(res) %
+                                                             mem_size, comp_res)
 
 
 def do_and(left, right, res):
@@ -322,13 +324,13 @@ def do_and(left, right, res):
         '2': temp_mem,
         '3': constants_mem
     }
-    left_dir_val = memories[str(int(left) // 1500)
-                            ].get_value_of_address(int(left) % 1500)
-    right_dir_val = memories[str(int(right) // 1500)
-                             ].get_value_of_address(int(right) % 1500)
+    left_dir_val = memories[str(int(left) // mem_size)
+                            ].get_value_of_address(int(left) % mem_size)
+    right_dir_val = memories[str(int(right) // mem_size)
+                             ].get_value_of_address(int(right) % mem_size)
     comp_res = left_dir_val and right_dir_val
-    memories[str(int(res) // 1500)].set_value_in_address(int(res) %
-                                                         1500, comp_res)
+    memories[str(int(res) // mem_size)].set_value_in_address(int(res) %
+                                                             mem_size, comp_res)
 
 
 def do_goto(_, __, res):
@@ -345,10 +347,10 @@ def do_assignment(left, _, res):
         '2': temp_mem,
         '3': constants_mem
     }
-    left_dir_val = memories[str(int(left) // 1500)
-                            ].get_value_of_address(int(left) % 1500)
-    memories[str(int(res) // 1500)].set_value_in_address(int(res) %
-                                                         1500, left_dir_val)
+    left_dir_val = memories[str(int(left) // mem_size)
+                            ].get_value_of_address(int(left) % mem_size)
+    memories[str(int(res) // mem_size)].set_value_in_address(int(res) %
+                                                             mem_size, left_dir_val)
 
 
 def do_goto_f(_, right, res):
@@ -361,8 +363,8 @@ def do_goto_f(_, right, res):
         '2': temp_mem,
         '3': constants_mem
     }
-    right_dir_val = memories[str(int(right) // 1500)
-                             ].get_value_of_address(int(right) % 1500)
+    right_dir_val = memories[str(int(right) // mem_size)
+                             ].get_value_of_address(int(right) % mem_size)
     ip = int(res) if right_dir_val == False else ip + 1
 
 
@@ -400,8 +402,8 @@ def do_param(left, _, res):
         '2': temp_mem,
         '3': constants_mem
     }
-    left_dir_val = memories[str(int(left) // 1500)
-                            ].get_value_of_address(int(left) % 1500)
+    left_dir_val = memories[str(int(left) // mem_size)
+                            ].get_value_of_address(int(left) % mem_size)
     param_type = func_dir[next_func]['params'][int(res)]
     aux_loc_mem.set_param_value_in_addres(left_dir_val, param_type)
 
@@ -415,8 +417,8 @@ def do_print(_, __, res):
         '2': temp_mem,
         '3': constants_mem
     }
-    res_dir_val = memories[str(int(res) // 1500)
-                           ].get_value_of_address(int(res) % 1500)
+    res_dir_val = memories[str(int(res) // mem_size)
+                           ].get_value_of_address(int(res) % mem_size)
     sys.stdout.write(str(res_dir_val) + '\n')
 
 
@@ -442,7 +444,7 @@ def do_end(_, __, ___):
 def do_read(_, __, res):
     if len(read_values_stack) == 0:
         in_line = sys.stdin.readline().rstrip('\n')
-        if int(res) % 1500 < 600 or int(res) % 1500 >= 900:
+        if int(res) % mem_size < 600 or int(res) % mem_size >= 900:
             read_values_stack.extend(in_line.split(' '))
         else:
             read_values_stack.append(in_line)
@@ -458,22 +460,22 @@ def do_read(_, __, res):
         '3': constants_mem
     }
     try:
-        if int(res) % 1500 < 300:
+        if int(res) % mem_size < 300:
             val = int(raw_val)
-            memories[str(int(res) // 1500)].set_value_in_address(int(res) %
-                                                                 1500, val)
-        elif int(res) % 1500 < 600:
+            memories[str(int(res) // mem_size)].set_value_in_address(int(res) %
+                                                                     mem_size, val)
+        elif int(res) % mem_size < 600:
             val = float(raw_val)
-            memories[str(int(res) // 1500)].set_value_in_address(int(res) %
-                                                                 1500, val)
-        elif int(res) % 1500 < 900:
+            memories[str(int(res) // mem_size)].set_value_in_address(int(res) %
+                                                                     mem_size, val)
+        elif int(res) % mem_size < 900:
             val = str(raw_val)
-            memories[str(int(res) // 1500)].set_value_in_address(int(res) %
-                                                                 1500, val)
-        elif int(res) % 1500 < 1200:
+            memories[str(int(res) // mem_size)].set_value_in_address(int(res) %
+                                                                     mem_size, val)
+        elif int(res) % mem_size < 1200:
             val = bool(raw_val)
-            memories[str(int(res) // 1500)].set_value_in_address(int(res) %
-                                                                 1500, val)
+            memories[str(int(res) // mem_size)].set_value_in_address(int(res) %
+                                                                     mem_size, val)
     except Exception as e:
         print(e)
 
@@ -505,7 +507,7 @@ def run_quad(op, left, right, res):
         'return': do_return,
         'end': do_end
     }
-    # print(ip, op, left, right, res)
+    print(ip, op, left, right, res)
     operations[op](left, right, res)
     if op != 'goto' and op != 'goto_f' and op != 'gosub':
         ip += 1
@@ -516,8 +518,11 @@ if __name__ == '__main__':
 
     with open(filename) as infile:
         # print(list(infile.readline().split(' ')[2]))
+        foo = infile.readline().split(' ')[2].split('\u001f')
+        mem_size = (len(foo) - 1) * 800
+        print(mem_size)
         ints, floats, strings, bools, _voids, * \
-            objs = infile.readline().split(' ')[2].split('\u001f')
+            objs = foo
         global_mem = Memory(ints, floats, strings, bools)
         while True:
             readline = infile.readline()

@@ -1,0 +1,20 @@
+program factorial;
+
+int function fact(n: int) {
+  if(n == 0) then {
+    return (1);
+  }
+  return (n * fact(n - 1));
+}
+
+main() {
+  var num, edad: int;
+  var name: string;
+  print("Como te llamas?");
+  read(name);
+  read(edad);
+  print("Insert number");
+  read(num);
+  print(edad);
+  print(fact(num));
+}

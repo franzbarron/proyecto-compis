@@ -1,4 +1,5 @@
 from sly import Parser
+from sly.yacc import _decorator as _
 from .domas_lexer import DomasLexer
 from .domas_quadruples import Quadruple
 from .domas_errors import *
@@ -32,6 +33,10 @@ class DomasParser(Parser):
     temp_counter = 0
     attr_counter = 1
     # Aux vars
+    lim_s = 0
+    r_array = 1
+    m0 = 0
+    m1 = 0
     current_class = None
     last_type = None
     has_returned = False
@@ -58,22 +63,21 @@ class DomasParser(Parser):
         #     obj_type = self.get_var_type(var[0])
         #     if obj_type in self.class_table and var[1] in self.class_table[obj_type]['vars']:
         #         return self.class_table[obj_type]['vars'][var[1]]['type']
-        print(json.dumps(self.function_table, indent=2))
+        # print(json.dumps(self.function_table, indent=2))
         if var in self.function_table[self.curr_scope]['vars']:
             return self.function_table[self.curr_scope]['vars'][var]['type']
         return self.function_table[self.program_name]['vars'][var]['type']
 
-    def update_num_temps(self, func_num_temps, type_idx):
+    def update_num_temps(self, func_num_temps, type_idx, quantity=1):
         lst = func_num_temps.split('\u001f')
         # print(lst[type_idx])
-        lst[type_idx] = str(int(lst[type_idx]) + 1)
+        lst[type_idx] = str(int(lst[type_idx]) + quantity)
         return '\u001f'.join(lst)
 
     def make_and_push_quad(self):
         # print(f'make_and_push_quad line {sys._getframe().f_lineno}')
         # print('Operators: ', self.stack_operators)
         # print('Operands: ', self.stack_operands)
-        offset = 800 * len(self.types) * 2
         ro = self.stack_operands.pop()
         lo = self.stack_operands.pop()
         op = self.stack_operators.pop()
@@ -176,8 +180,12 @@ class DomasParser(Parser):
     @ _('')
     def ad2(self, p):
         self.latest_var = self.stack_vars.pop()
-        self.class_table[self.current_class]['vars'][self.latest_var] = {
-            'size': p[-1]}
+        if self.class_table[self.current_class]['vars']:
+            self.class_table[self.current_class]['vars'][self.latest_var] = {
+                'd1': p[-1]}
+        else:
+            self.class_table[self.current_class]['vars'] = {
+                self.latest_var: {'d1': p[-1]}}
 
     @ _('COMMA CTE_I ad3', 'empty')
     def attr_multidim(self, p):
@@ -185,11 +193,23 @@ class DomasParser(Parser):
 
     @ _('')
     def ad3(self, p):
-        self.class_table[self.current_class]['vars'][self.latest_var]['size'] *= p[-1]
+        # self.class_table[self.current_class]['vars'][self.latest_var]['size'] *= p[-1]
+        self.class_table[self.current_class]['vars'][self.latest_var]['d2'] = p[-1]
 
     @ _('')
     def ad4(self, p):
+        # self.class_table[self.current_class]['vars'][self.latest_var]['type'] = p[-1]
+        idx = self.types.index(p[-1])
+        num_types = self.class_table[self.current_class]['num_types']
+        if 'd1' in self.class_table[self.current_class]['vars'][self.latest_var]:
+            q = self.class_table[self.current_class]['vars'][self.latest_var]['d1']
+        if 'd2' in self.class_table[self.current_class]['vars'][self.latest_var]:
+            q *= self.class_table[self.current_class]['vars'][self.latest_var]['d2']
+        self.class_table[self.current_class]['vars'][self.latest_var]['dir'] = idx * \
+            300 + int(num_types.split('\u001f')[idx])
         self.class_table[self.current_class]['vars'][self.latest_var]['type'] = p[-1]
+        self.class_table[self.current_class]['num_types'] = self.update_num_temps(
+            num_types, idx, q)
 
     @ _('attr_var_list COLON simple_type ad5 SEMI attribute_declaration')
     def attr_simple_var(self, p):
@@ -278,7 +298,7 @@ class DomasParser(Parser):
             self.function_table[self.curr_scope]['num_types'] = self.update_num_temps(
                 num_types, idx)
             self.function_table[self.curr_scope]['vars'][self.latest_var] = {
-                'type': p[-1], 'dir': idx * 300 + int(num_types.split('\u001f')[idx])}
+                'type': p[-1], 'dir': 1500 + idx * 300 + int(num_types.split('\u001f')[idx])}
 
     @ _('COMMA m_parameters', 'empty')
     def m_param_choose(self, p):
@@ -308,18 +328,14 @@ class DomasParser(Parser):
 
     @ _('')
     def gvd2(self, p):
+        print('gvd2')
         self.latest_var = self.stack_vars.pop()
-        # If we're dealing with a method of a class
-        if self.current_class != None:
+        if self.function_table[self.curr_scope]['vars']:
             self.function_table[self.curr_scope]['vars'][self.latest_var] = {
-                'size': p[-1]}
-
-        elif self.function_table[self.curr_scope]['vars']:
-            self.function_table[self.curr_scope]['vars'][self.latest_var] = {
-                'size': p[-1]}
+                'd1': p[-1]}
         else:
             self.function_table[self.curr_scope]['vars'] = {
-                self.latest_var: {'size': p[-1]}}
+                self.latest_var: {'d1': p[-1]}}
 
     @ _('COMMA CTE_I gvd3', 'empty')
     def multidim(self, p):
@@ -335,66 +351,65 @@ class DomasParser(Parser):
 
     @ _('')
     def gvd3(self, p):
-        # If we're dealing with a method of a class
-        if self.current_class != None:
-            self.function_table[self.curr_scope]['vars'][self.latest_var]['size'] *= p[-1]
-
-        else:
-            self.function_table[self.curr_scope]['vars'][self.latest_var]['size'] *= p[-1]
+        print('gvd3')
+        self.function_table[self.curr_scope]['vars'][self.latest_var]['d2'] = p[-1]
 
     @ _('')
     def gvd4(self, p):
-        # If we're dealing with a method of a class
-        if self.current_class != None:
-            self.function_table[self.curr_scope]['vars'][self.latest_var]['type'] = p[-1]
-
-        else:
-            self.function_table[self.curr_scope]['vars'][self.latest_var]['type'] = p[-1]
+        print('gvd4')
+        idx = self.types.index(p[-1])
+        num_types = self.function_table[self.curr_scope]['num_types']
+        offset = 1500 if self.curr_scope != self.program_name else 0
+        if 'd1' in self.function_table[self.curr_scope]['vars'][self.latest_var]:
+            q = self.function_table[self.curr_scope]['vars'][self.latest_var]['d1']
+        if 'd2' in self.function_table[self.curr_scope]['vars'][self.latest_var]:
+            q *= self.function_table[self.curr_scope]['vars'][self.latest_var]['d2']
+        self.function_table[self.curr_scope]['vars'][self.latest_var]['dir'] = idx * \
+            300 + int(num_types.split('\u001f')[idx]) + offset
+        self.function_table[self.curr_scope]['vars'][self.latest_var]['type'] = p[-1]
+        self.function_table[self.curr_scope]['num_types'] = self.update_num_temps(
+            num_types, idx, q)
+        # self.function_table[self.curr_scope]['vars'][self.latest_var] = {
+        #     'type': p[-1], 'dir': idx * 300 + int(num_types.split('\u001f')[idx]) + offset}
 
     @ _('')
     def gvd5(self, p):
         while len(self.stack_vars) > 0:
             curr_var = self.stack_vars.pop()
-            # If we're dealing with a method of a class
-            if self.current_class != None:
-                idx = self.types.index(p[-1])
-                num_types = self.function_table[self.curr_scope]['num_types']
-                self.function_table[self.curr_scope]['num_types'] = self.update_num_temps(
-                    num_types, idx)
-                self.function_table[self.curr_scope]['vars'][curr_var] = {
-                    'type': p[-1], 'dir': idx * 300 + int(num_types.split('\u001f')[idx]) + 1500}
-                self.function_table[self.curr_scope]['vars'][curr_var] = {
-                    'type': p[-1]}
-            else:
-                idx = self.types.index(p[-1])
-                num_types = self.function_table[self.curr_scope]['num_types']
-                offset = 1500 if self.curr_scope != self.program_name else 0
-                self.function_table[self.curr_scope]['num_types'] = self.update_num_temps(
-                    num_types, idx)
-                self.function_table[self.curr_scope]['vars'][curr_var] = {
-                    'type': p[-1], 'dir': idx * 300 + int(num_types.split('\u001f')[idx]) + offset}
+            idx = self.types.index(p[-1])
+            num_types = self.function_table[self.curr_scope]['num_types']
+            offset = 1500 if self.curr_scope != self.program_name else 0
+            self.function_table[self.curr_scope]['vars'][curr_var] = {
+                'type': p[-1], 'dir': idx * 300 + int(num_types.split('\u001f')[idx]) + offset}
+            self.function_table[self.curr_scope]['num_types'] = self.update_num_temps(
+                num_types, idx)
 
     @ _('')
     def gvd6(self, p):
+        print('gvd6')
         while len(self.stack_vars) > 0:
             var_id = self.stack_vars.pop()
             # int_num_types = [int(n) for n in num_types.split('\u001f')[:-1]]
             # num_objs = sum(int_num_types[5:], 1)
             offset = 1500 if self.curr_scope != self.program_name else 0
-            print('gvd6', offset)
+            num_types = self.function_table[self.curr_scope]['num_types']
+            # base_addr = int(num_types.split('\u001f')[idx])
+            base_addrs = [int(n) for n in num_types.split('\u001f')[:-1]]
             for attr in self.class_table[p[-1]]['vars']:
                 attr_type = self.class_table[p[-1]]['vars'][attr]['type']
                 idx = self.types.index(attr_type)
                 num_types = self.function_table[self.curr_scope]['num_types']
-                self.function_table[self.curr_scope]['num_types'] = self.update_num_temps(
-                    num_types, idx)
+                q = 1
+                if 'd1' in self.class_table[p[-1]]['vars'][attr]:
+                    q = self.class_table[p[-1]]['vars'][attr]['d1']
+                if 'd2' in self.class_table[p[-1]]['vars'][attr]:
+                    q *= self.class_table[p[-1]]['vars'][attr]['d2']
                 self.function_table[self.curr_scope]['vars'][var_id + '.' + attr] = {
-                    'type': attr_type, 'dir': idx * 300 + int(num_types.split('\u001f')[idx]) + offset}
+                    'type': attr_type, 'dir': base_addrs[idx] + self.class_table[p[-1]]['vars'][attr]['dir'] + offset}
+                self.function_table[self.curr_scope]['num_types'] = self.update_num_temps(
+                    num_types, idx, q)
             self.function_table[self.curr_scope]['vars'][var_id] = {
                 'type': p[-1]}
-            # print(self.class_table[p[-1]]['vars'][attr])
-            # self.function_table[self.curr_scope]['num_types'] = self.update_num_temps(
-            #     num_types, idx)
 
     @ _('def_type fd1_current_type FUNCTION ID fd3_add_to_func_table LPAREN parameters RPAREN LCURL fd4 var_declaration statements RCURL fd5 fd6 function_definition', 'empty')
     def function_definition(self, p):
@@ -427,7 +442,7 @@ class DomasParser(Parser):
     @ _('')
     def fd5(self, p):
         # print(self.function_table[self.last_func_added])
-        del self.function_table[self.last_func_added]['vars']
+        # del self.function_table[self.last_func_added]['vars']
         pass
 
     @ _('')
@@ -475,8 +490,7 @@ class DomasParser(Parser):
         idx = self.types.index(p[-1])
         self.function_table[self.curr_scope]['params'] += str(idx)
         num_types = self.function_table[self.curr_scope]['num_types']
-        offset = 800 * \
-            len(self.types) if self.curr_scope != self.program_name else 0
+        offset = 1500 if self.curr_scope != self.program_name else 0
         self.function_table[self.curr_scope]['num_types'] = self.update_num_temps(
             num_types, idx)
         self.function_table[self.curr_scope]['vars'][self.latest_var] = {
@@ -495,35 +509,29 @@ class DomasParser(Parser):
     def ass1(self, p):
         # If we're dealing with a method of a class
         if self.current_class != None:
-            print('ass1', self.class_table[self.current_class]['vars'])
             if not p[-1] in self.function_table[self.curr_scope]['vars'] and not p[-1] in self.class_table[self.current_class]['vars']:
                 raise SyntaxError(f'Variable {p[-1]} is not declared')
             self.latest_var = p[-1]
         # elif not p[-1] in self.function_table[self.curr_scope]['vars'] and not p[-1] in self.function_table[self.program_name]['vars']:
         #     raise SyntaxError(f'Variable {p[-1]} is not declared')
         else:
-            print('ass1', p[-1])
             self.latest_var = p[-1]
 
     @_('')
     def ass2(self, p):
-        print('culo2')
         while(len(self.stack_operators)):
             self.make_and_push_quad()
         lo = self.stack_operands.pop()
-        print(f'ass2 line {sys._getframe().f_lineno}')
         v_type = self.get_var_type(self.latest_var)
         self.last_type = sm.checkOperation(v_type, lo['type'], '=')
         # splitted = self.latest_var.split('.')
         if self.current_class != None:
             if self.latest_var in self.class_table[self.current_class]['vars']:
-                attr_dir = self.class_table[self.current_class]['vars'][self.latest_var]['dir']
-                var_dir = attr_dir + 1200 * len(self.types)
-                print('ass2', self.latest_var)
+                var_dir = self.class_table[self.current_class]['vars'][self.latest_var]['dir']
+                # var_dir = attr_dir + 1200 * len(self.types)
             else:
-                print('a$$2')
-                attr_dir = self.function_table[self.curr_scope]['vars'][self.latest_var]['dir']
-                var_dir = attr_dir + 1200 * len(self.types)
+                var_dir = self.function_table[self.curr_scope]['vars'][self.latest_var]['dir']
+                # var_dir = attr_dir + 1200 * len(self.types)
         # elif(len(splitted) == 2):
         #     if splitted[0] in self.function_table[self.curr_scope]['vars']:
         #         id_dir = self.function_table[self.curr_scope]['vars'][splitted[0]]['dir']
@@ -646,13 +654,12 @@ class DomasParser(Parser):
             if self.current_class != None:
                 if whole_p in self.class_table[self.current_class]['vars']:
                     cte_type = self.class_table[self.current_class]['vars'][whole_p]['type']
-                    attr_dir = self.class_table[self.current_class]['vars'][whole_p]['dir']
-                    var_dir = attr_dir + 1200 * len(self.types)
+                    var_dir = self.class_table[self.current_class]['vars'][whole_p]['dir']
+                    # var_dir = attr_dir + 1200 * len(self.types)
                 else:
                     cte_type = self.function_table[self.curr_scope]['vars'][whole_p]['type']
-                    attr_dir = self.function_table[self.curr_scope]['vars'][whole_p]['dir']
-                    var_dir = attr_dir + 1200 * len(self.types)
-                print('chtm varcte')
+                    var_dir = self.function_table[self.curr_scope]['vars'][whole_p]['dir']
+                    # var_dir = attr_dir + 1200 * len(self.types)
                 return {'value': whole_p, 'type': cte_type, 'dir': var_dir}
             else:
                 cte_type = self.get_var_type(whole_p)
@@ -666,7 +673,6 @@ class DomasParser(Parser):
 
     @_('constant e2 operator e3 expression', 'constant e2', 'LPAREN e1 expression RPAREN e4', 'LPAREN e1 expression RPAREN e4 operator e3 expression')
     def expression(self, p):
-        print(p[0])
         # print(f'Expression line {sys._getframe().f_lineno}')
         # print('Operators: ', self.stack_operators)
         # print('Operands: ', self.stack_operands)
@@ -1103,7 +1109,7 @@ class DomasParser(Parser):
             self.quad_counter += 1
             self.stack_operands.pop()
         else:
-            print(json.dumps(self.function_table, indent=2))
+            # print(json.dumps(self.function_table, indent=2))
             self.quadruples.append(
                 Quadruple(self.stack_operands.pop()['dir'], -1, 'return', self.function_table[self.program_name]['vars'][self.curr_scope]['real_dir']))
             self.quad_counter += 1
@@ -1126,7 +1132,6 @@ class DomasParser(Parser):
     def fp3(self, p):
         # for num, quad in enumerate(self.quadruples, start=1):
         #     print(num, quad)
-        print('fp3')
         self.param_counter = 0
 
     @ _('')
@@ -1143,7 +1148,6 @@ class DomasParser(Parser):
     @ _('')
     def fp1(self, p):
         made_quad = False
-        print(self.stack_operands)
         while(len(self.stack_operators)):
             offset = 800 * len(self.types) * 2
             ro = self.stack_operands.pop()
@@ -1164,7 +1168,6 @@ class DomasParser(Parser):
             last_quad = self.quadruples[-1]
             if self.param_counter == len(self.function_table[self.called_func]['params']):
                 raise SyntaxError('Too many params')
-            print(last_quad.res)
             param_type = (last_quad.res % 1500) // 300
             if param_type != int(self.function_table[self.called_func]['params'][self.param_counter]):
                 raise TypeError('Type mismatch')
@@ -1177,7 +1180,6 @@ class DomasParser(Parser):
             if self.param_counter == len(self.function_table[self.called_func]['params']):
                 raise SyntaxError('Too many params')
             param_type = (val['dir'] % 1500) // 300
-            print(val['value'], param_type)
             if param_type != int(self.function_table[self.called_func]['params'][self.param_counter]):
                 raise TypeError('Type mismatch')
             self.quadruples.append(
@@ -1196,10 +1198,10 @@ class DomasParser(Parser):
     @ _('')
     def main2(self, p):
         self.quadruples.append(Quadruple(-1, -1, 'end', -1))
-        del self.function_table[self.program_name]['vars']
-        del self.function_table['main']['vars']
-        for class_name in self.class_table:
-            del self.class_table[class_name]['vars']
+        # del self.function_table[self.program_name]['vars']
+        # del self.function_table['main']['vars']
+        # for class_name in self.class_table:
+        #     del self.class_table[class_name]['vars']
         pass
 
     @ _('')

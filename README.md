@@ -25,7 +25,7 @@ python domasc.py <path/to/file>
 If one were to compile code in a file inside the tests folder, for example, one would run:
 
 ```
-python domasc.py tests/hello.txt
+python domasc.py tests/hello.dms
 ```
 
 On a successful compilation, a new file will be generated on the working directory with a .domas extension. This file contains bytecode that can be executed by the virtual machine. The name of this file is the same as the name of the program in the code. For example, code that begins with the line
@@ -57,7 +57,3 @@ To execute only the lexer, which is located in the lexer_parser folder, you can 
 ```
 python domas_lexer.py <path/to/file>
 ```
-
-
-
-

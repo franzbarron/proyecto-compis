@@ -19,11 +19,11 @@ class DomasParser(Parser):
     class_table = {}
     constant_table = {'int': [], 'float': [], 'string': [], 'bool': []}
     # Stacks
-    stack_operands = []
-    stack_operators = []
+    stack_of_stacks = [[], []]  # operands, operators !important
     stack_vars = []
-    tmp_s_operands = []
-    tmp_s_operators = []
+    last_arr_t = []
+    displacements = []
+    for_var_dir = []
     # Lists
     quadruples = []
     jumps = []
@@ -33,10 +33,6 @@ class DomasParser(Parser):
     temp_counter = 0
     attr_counter = 1
     # Aux vars
-    lim_s = 0
-    r_array = 1
-    m0 = 0
-    m1 = 0
     current_class = None
     last_type = None
     has_returned = False
@@ -74,31 +70,46 @@ class DomasParser(Parser):
         lst[type_idx] = str(int(lst[type_idx]) + quantity)
         return '\u001f'.join(lst)
 
+    def check_var_is_array(self, var):
+        if not self.check_variable_exists(var):
+            return False
+        if self.current_class != None:
+            if var in self.class_table[self.current_class]['vars']:
+                return 'd1' in self.class_table[self.current_class]['vars'][var]
+            else:
+                return 'd1' in self.function_table[self.curr_scope]['vars'][var]
+        elif var in self.function_table[self.curr_scope]['vars']:
+            return 'd1' in self.function_table[self.curr_scope]['vars'][var]
+        else:
+            return 'd1' in self.function_table[self.program_name]['vars'][var]
+
     def make_and_push_quad(self):
-        # print(f'make_and_push_quad line {sys._getframe().f_lineno}')
-        # print('Operators: ', self.stack_operators)
-        # print('Operands: ', self.stack_operands)
-        ro = self.stack_operands.pop()
-        lo = self.stack_operands.pop()
-        op = self.stack_operators.pop()
+        ro = self.stack_of_stacks[-2].pop()
+        lo = self.stack_of_stacks[-2].pop()
+        op = self.stack_of_stacks[-1].pop()
+        # print('ro', ro, 'lo', lo)
         r_type = sm.checkOperation(lo['type'], ro['type'], op)
-        # print(lo)
         self.last_type = r_type
         idx = self.types.index(r_type)
         num_temps = self.function_table[self.curr_scope]['num_temps']
         self.function_table[self.curr_scope]['num_temps'] = self.update_num_temps(
             num_temps, idx)
-        t_dir = idx * 300 + 3000
-        self.stack_operands.append(
+        t_dir = idx * 300 + \
+            int(num_temps.split('\u001f')[idx]) + 3000
+        self.stack_of_stacks[-2].append(
             {'value': 't' + str(self.temp_counter), 'type': r_type, 'dir': t_dir})
-        # op_idx = self.operators.index(op)
-        # self.quadruples.append(
-        #     Quadruple(lo['dir'], ro['dir'], op_idx, t_dir))
+        if self.check_var_is_array(lo['value']):
+            lo_dir = '$' + str(self.last_arr_t.pop())
+        else:
+            lo_dir = lo['dir']
+        if self.check_var_is_array(ro['value']):
+            ro_dir = '$' + str(self.last_arr_t.pop())
+        else:
+            ro_dir = ro['dir']
         self.quadruples.append(
-            Quadruple(lo['dir'], ro['dir'], op, t_dir))
+            Quadruple(lo_dir, ro_dir, op, t_dir))
         self.temp_counter += 1
         self.quad_counter += 1
-        # print('Made the quad ', self.quadruples[-1])
 
     @_('PROGRAM ID pro1 SEMI pro0 declarations')
     def programa(self, p):
@@ -108,9 +119,6 @@ class DomasParser(Parser):
             self.function_table, indent=2))
         class_dir_out.write(json.dumps(
             self.class_table, indent=2))
-        # print('Cuadruplos:')
-        # for num, quad in enumerate(self.quadruples, start=1):
-        #     print(num, quad)
         return (self.program_name, self.function_table, self.class_table, self.constant_table, self.quadruples)
 
     @_('')
@@ -273,15 +281,6 @@ class DomasParser(Parser):
 
             # print(json.dumps(self.function_table, indent=2))
 
-    # @ _('')
-    # def md4(self, p):
-    #     self.class_table[self.current_class][self.last_func_added]['start'] = self.quad_counter
-
-    # @ _('')
-    # def md5(self, p):
-    #     # del self.class_table[self.current_class][self.last_func_added]['vars']
-    #     pass
-
     @_('ID p1 COLON simple_type m2 m_param_choose', 'empty')
     def m_parameters(self, p):
         return 'parameters'
@@ -328,7 +327,6 @@ class DomasParser(Parser):
 
     @ _('')
     def gvd2(self, p):
-        print('gvd2')
         self.latest_var = self.stack_vars.pop()
         if self.function_table[self.curr_scope]['vars']:
             self.function_table[self.curr_scope]['vars'][self.latest_var] = {
@@ -356,7 +354,6 @@ class DomasParser(Parser):
 
     @ _('')
     def gvd4(self, p):
-        print('gvd4')
         idx = self.types.index(p[-1])
         num_types = self.function_table[self.curr_scope]['num_types']
         offset = 1500 if self.curr_scope != self.program_name else 0
@@ -386,7 +383,6 @@ class DomasParser(Parser):
 
     @ _('')
     def gvd6(self, p):
-        print('gvd6')
         while len(self.stack_vars) > 0:
             var_id = self.stack_vars.pop()
             # int_num_types = [int(n) for n in num_types.split('\u001f')[:-1]]
@@ -442,7 +438,7 @@ class DomasParser(Parser):
     @ _('')
     def fd5(self, p):
         # print(self.function_table[self.last_func_added])
-        # del self.function_table[self.last_func_added]['vars']
+        del self.function_table[self.last_func_added]['vars']
         pass
 
     @ _('')
@@ -516,52 +512,269 @@ class DomasParser(Parser):
         #     raise SyntaxError(f'Variable {p[-1]} is not declared')
         else:
             self.latest_var = p[-1]
+        print('Waaaaaaaaaaaa')
 
     @_('')
     def ass2(self, p):
-        while(len(self.stack_operators)):
+        print('ass2 begin')
+        while(len(self.stack_of_stacks[-1])):
             self.make_and_push_quad()
-        lo = self.stack_operands.pop()
+        lo = self.stack_of_stacks[-2].pop()
         v_type = self.get_var_type(self.latest_var)
         self.last_type = sm.checkOperation(v_type, lo['type'], '=')
-        # splitted = self.latest_var.split('.')
         if self.current_class != None:
             if self.latest_var in self.class_table[self.current_class]['vars']:
-                var_dir = self.class_table[self.current_class]['vars'][self.latest_var]['dir']
-                # var_dir = attr_dir + 1200 * len(self.types)
+                if 'd1' in self.class_table[self.current_class]['vars'][self.latest_var]:
+                    var_dir = '$' + str(self.last_arr_t.pop())
+                else:
+                    var_dir = self.class_table[self.current_class]['vars'][self.latest_var]['dir']
+            else:
+                if 'd1' in self.function_table[self.curr_scope]['vars'][self.latest_var]:
+                    var_dir = '$' + str(self.last_arr_t.pop())
+                else:
+                    var_dir = self.function_table[self.curr_scope]['vars'][self.latest_var]['dir']
+        elif self.latest_var in self.function_table[self.curr_scope]['vars']:
+            if 'd1' in self.function_table[self.curr_scope]['vars'][self.latest_var]:
+                var_dir = '$' + str(self.last_arr_t.pop())
             else:
                 var_dir = self.function_table[self.curr_scope]['vars'][self.latest_var]['dir']
-                # var_dir = attr_dir + 1200 * len(self.types)
-        # elif(len(splitted) == 2):
-        #     if splitted[0] in self.function_table[self.curr_scope]['vars']:
-        #         id_dir = self.function_table[self.curr_scope]['vars'][splitted[0]]['dir']
-        #         print('ass2 here', id_dir)
-        #         obj_type = self.function_table[self.curr_scope]['vars'][splitted[0]]['type']
-        #         attr_dir = self.class_table[obj_type]['vars'][splitted[1]]['dir']
-        #         var_dir = attr_dir + id_dir
-        #         print('here', self.latest_var, var_dir)
-        #     else:
-        #         id_dir = self.function_table[self.program_name]['vars'][splitted[0]]['dir']
-        #         obj_type = self.function_table[self.program_name]['vars'][splitted[0]]['type']
-        #         attr_dir = self.class_table[obj_type]['vars'][splitted[1]]['dir']
-        #         var_dir = attr_dir + id_dir
-        elif self.latest_var in self.function_table[self.curr_scope]['vars']:
-            var_dir = self.function_table[self.curr_scope]['vars'][self.latest_var]['dir']
         else:
-            # print('ass2')
-            var_dir = self.function_table[self.program_name]['vars'][self.latest_var]['dir']
+            if 'd1' in self.function_table[self.program_name]['vars'][self.latest_var]:
+                var_dir = '$' + str(self.last_arr_t.pop())
+            else:
+                var_dir = self.function_table[self.program_name]['vars'][self.latest_var]['dir']
         q = Quadruple(lo['dir'], -1, '=', var_dir)
         self.quadruples.append(q)
         self.quad_counter += 1
-        # for num, quad in enumerate(self.quadruples, start=1):
-        #     print(num, quad)
+        print('ass2 end')
 
-    @_('id_or_attribute', 'id_or_attribute v1 LBRACKET expression v2 RBRACKET',
-        'id_or_attribute v1 LBRACKET expression v3 COMMA expression v4 RBRACKET')
+    @_('id_or_attribute', 'id_or_attribute v0 LBRACKET expression v1 RBRACKET',
+        'id_or_attribute v0 LBRACKET expression v2 COMMA v4 expression v3 RBRACKET')
     def variable(self, p):
         # print(f'variable line {sys._getframe().f_lineno}')
         # print('Variable p[0]: ', p[0])
         return p[0]
+
+    @_('')
+    def v0(self, p):
+        self.check_variable_exists(p[-1])
+        if self.current_class != None:
+            if not 'd1' in self.class_table[self.current_class]['vars'][p[-1]]:
+                raise TypeError(f'{p[-1]} is not an array or vector')
+        elif p[-1] in self.function_table[self.curr_scope]['vars']:
+            if not 'd1' in self.function_table[self.curr_scope]['vars'][p[-1]]:
+                raise TypeError(f'{p[-1]} is not an array or vector')
+        else:
+            if not 'd1' in self.function_table[self.program_name]['vars'][p[-1]]:
+                raise TypeError(f'{p[-1]} is not an array or vector')
+        self.latest_var = p[-1]
+        self.stack_of_stacks.append([])
+        self.stack_of_stacks.append([])
+
+    @_('')
+    def v4(self, p):
+        self.check_variable_exists(self.latest_var)
+        if self.current_class != None:
+            if not 'd2' in self.class_table[self.current_class]['vars'][self.latest_var]:
+                raise TypeError(f'{self.latest_var} is not an array or vector')
+        elif self.latest_var in self.function_table[self.curr_scope]['vars']:
+            if not 'd2' in self.function_table[self.curr_scope]['vars'][self.latest_var]:
+                raise TypeError(f'{self.latest_var} is not an array or vector')
+        else:
+            if not 'd2' in self.function_table[self.program_name]['vars'][self.latest_var]:
+                raise TypeError(f'{self.latest_var} is not an array or vector')
+        self.stack_of_stacks.append([])
+        self.stack_of_stacks.append([])
+
+    @_('')
+    def v1(self, p):
+        made_quad = False
+        while(len(self.stack_of_stacks[-1])):
+            ro = self.stack_of_stacks[-2].pop()
+            lo = self.stack_of_stacks[-2].pop()
+            op = self.stack_of_stacks[-1].pop()
+            self.last_type = sm.checkOperation(lo['type'], ro['type'], op)
+            idx = self.types.index(self.last_type)
+            num_temps = self.function_table[self.curr_scope]['num_temps']
+            t_dir = idx * 300 + \
+                int(num_temps.split('\u001f')[idx]) + 3000
+            self.function_table[self.curr_scope]['num_temps'] = self.update_num_temps(
+                num_temps, idx)
+            self.quadruples.append(
+                Quadruple(lo['dir'], ro['dir'], op, t_dir))
+            self.temp_counter += 1
+            self.quad_counter += 1
+            made_quad = True
+        if self.current_class != None:
+            pass
+        elif self.latest_var in self.function_table[self.curr_scope]['vars']:
+            t_addr = self.quadruples[-1].res if made_quad else self.stack_of_stacks[-2].pop()[
+                'dir']
+            print('t_addr', t_addr)
+            if (t_addr % 1500) // 300 != 0 and (t_addr % 1500) // 300 != 1:
+                raise TypeError('Type mismatch')
+            lms = self.function_table[self.curr_scope]['vars'][self.latest_var]['d1']
+            self.quadruples.append(Quadruple(0, lms, 'verify', t_addr))
+            self.quad_counter += 1
+            dir_b = self.function_table[self.curr_scope]['vars'][self.latest_var]['dir']
+            if not dir_b in self.constant_table['int']:
+                self.constant_table['int'].append(dir_b)
+            cons_dir = self.constant_table['int'].index(dir_b) + 4500
+            num_temps = self.function_table[self.curr_scope]['num_temps']
+            t_dir = int(num_temps.split('\u001f')[0]) + 3000
+            self.function_table[self.curr_scope]['num_temps'] = self.update_num_temps(
+                num_temps, 0)
+            self.quadruples.append(Quadruple(cons_dir, t_addr, '+', t_dir))
+            self.quad_counter += 1
+            self.last_arr_t.append(t_dir)
+        else:
+            t_addr = self.quadruples[-1].res if made_quad else self.stack_of_stacks[-2].pop()[
+                'dir']
+            if (t_addr % 1500) // 300 != 0 and (t_addr % 1500) // 300 != 1:
+                raise TypeError('Type mismatch')
+            lms = self.function_table[self.program_name]['vars'][self.latest_var]['d1']
+            self.quadruples.append(Quadruple(0, lms, 'verify', t_addr))
+            self.quad_counter += 1
+            dir_b = self.function_table[self.program_name]['vars'][self.latest_var]['dir']
+            self.constant_table['int'].append(dir_b)
+            cons_dir = self.constant_table['int'].index(dir_b) + 4500
+            num_temps = self.function_table[self.program_name]['num_temps']
+            t_dir = int(num_temps.split('\u001f')[0]) + 3000
+            self.function_table[self.program_name]['num_temps'] = self.update_num_temps(
+                num_temps, 0)
+            self.quadruples.append(Quadruple(cons_dir, t_addr, '+', t_dir))
+            self.quad_counter += 1
+            self.last_arr_t.append(t_dir)
+        self.stack_of_stacks.pop()
+        self.stack_of_stacks.pop()
+
+    @_('')
+    def v2(self, p):
+        made_quad = False
+        while(len(self.stack_of_stacks[-1])):
+            ro = self.stack_of_stacks[-2].pop()
+            lo = self.stack_of_stacks[-2].pop()
+            op = self.stack_of_stacks[-1].pop()
+            self.last_type = sm.checkOperation(lo['type'], ro['type'], op)
+            idx = self.types.index(self.last_type)
+            num_temps = self.function_table[self.curr_scope]['num_temps']
+            t_dir = idx * 300 + \
+                int(num_temps.split('\u001f')[idx]) + 3000
+            self.function_table[self.curr_scope]['num_temps'] = self.update_num_temps(
+                num_temps, idx)
+            self.quadruples.append(
+                Quadruple(lo['dir'], ro['dir'], op, t_dir))
+            self.temp_counter += 1
+            self.quad_counter += 1
+            made_quad = True
+        if self.current_class != None:
+            pass
+        elif self.latest_var in self.function_table[self.curr_scope]['vars']:
+            t_addr = self.quadruples[-1].res if made_quad else self.stack_of_stacks[-2].pop()[
+                'dir']
+            print('t_addr', t_addr)
+            print('chtm humberto')
+            if (t_addr % 1500) // 300 != 0 and (t_addr % 1500) // 300 != 1:
+                raise TypeError('Type mismatch')
+            lms = self.function_table[self.curr_scope]['vars'][self.latest_var]['d1']
+            self.quadruples.append(Quadruple(0, lms, 'verify', t_addr))
+            self.quad_counter += 1
+            d2 = self.function_table[self.curr_scope]['vars'][self.latest_var]['d2']
+            if not d2 in self.constant_table['int']:
+                self.constant_table['int'].append(d2)
+            cons_dir = self.constant_table['int'].index(d2) + 4500
+            num_temps = self.function_table[self.curr_scope]['num_temps']
+            t_dir = int(num_temps.split('\u001f')[0]) + 3000
+            self.function_table[self.curr_scope]['num_temps'] = self.update_num_temps(
+                num_temps, 0)
+            self.quadruples.append(Quadruple(cons_dir, t_addr, '*', t_dir))
+            self.quad_counter += 1
+            self.displacements.append(t_dir)
+        else:
+            t_addr = self.quadruples[-1].res if made_quad else self.stack_of_stacks[-2].pop()[
+                'dir']
+            if (t_addr % 1500) // 300 != 0 and (t_addr % 1500) // 300 != 1:
+                raise TypeError('Type mismatch')
+            lms = self.function_table[self.program_name]['vars'][self.latest_var]['d1']
+            self.quadruples.append(Quadruple(0, lms, 'verify', t_addr))
+            self.quad_counter += 1
+            d2 = self.function_table[self.program_name]['vars'][self.latest_var]['d2']
+            self.constant_table['int'].append(d2)
+            cons_dir = self.constant_table['int'].index(d2) + 4500
+            num_temps = self.function_table[self.program_name]['num_temps']
+            t_dir = int(num_temps.split('\u001f')[0]) + 3000
+            self.function_table[self.program_name]['num_temps'] = self.update_num_temps(
+                num_temps, 0)
+            self.quadruples.append(Quadruple(cons_dir, t_addr, '*', t_dir))
+            self.quad_counter += 1
+            self.displacements.append(t_dir)
+        self.stack_of_stacks.pop()
+        self.stack_of_stacks.pop()
+
+    @_('')
+    def v3(self, p):
+        made_quad = False
+        while(len(self.stack_of_stacks[-1])):
+            ro = self.stack_of_stacks[-2].pop()
+            lo = self.stack_of_stacks[-2].pop()
+            op = self.stack_of_stacks[-1].pop()
+            self.last_type = sm.checkOperation(lo['type'], ro['type'], op)
+            idx = self.types.index(self.last_type)
+            num_temps = self.function_table[self.curr_scope]['num_temps']
+            t_dir = idx * 300 + \
+                int(num_temps.split('\u001f')[idx]) + 3000
+            self.function_table[self.curr_scope]['num_temps'] = self.update_num_temps(
+                num_temps, idx)
+            self.quadruples.append(
+                Quadruple(lo['dir'], ro['dir'], op, t_dir))
+            self.temp_counter += 1
+            self.quad_counter += 1
+            made_quad = True
+        if self.current_class != None:
+            pass
+        elif self.latest_var in self.function_table[self.curr_scope]['vars']:
+            t_addr = self.quadruples[-1].res if made_quad else self.stack_of_stacks[-2].pop()[
+                'dir']
+            if (t_addr % 1500) // 300 != 0 and (t_addr % 1500) // 300 != 1:
+                raise TypeError('Type mismatch')
+            lms = self.function_table[self.curr_scope]['vars'][self.latest_var]['d2']
+            self.quadruples.append(Quadruple(0, lms, 'verify', t_addr))
+            self.quad_counter += 1
+            dir_b = self.function_table[self.curr_scope]['vars'][self.latest_var]['dir']
+            if not dir_b in self.constant_table['int']:
+                self.constant_table['int'].append(dir_b)
+            cons_dir = self.constant_table['int'].index(dir_b) + 4500
+            num_temps = self.function_table[self.curr_scope]['num_temps']
+            t_dir = int(num_temps.split('\u001f')[0]) + 3000
+            self.function_table[self.curr_scope]['num_temps'] = self.update_num_temps(
+                num_temps, 0, 2)
+            self.quadruples.append(Quadruple(self.displacements.pop(), t_addr, '+', t_dir))
+            self.quadruples.append(Quadruple(cons_dir, t_dir, '+', t_dir + 1))
+            self.quad_counter += 2
+            self.last_arr_t.append(t_dir + 1)
+            print('t_addr', t_addr)
+        else:
+            t_addr = self.quadruples[-1].res if made_quad else self.stack_of_stacks[-2].pop()[
+                'dir']
+            if (t_addr % 1500) // 300 != 0 and (t_addr % 1500) // 300 != 1:
+                raise TypeError('Type mismatch')
+            lms = self.function_table[self.program_name]['vars'][self.latest_var]['d2']
+            self.quadruples.append(Quadruple(0, lms, 'verify', t_addr))
+            self.quad_counter += 1
+            dir_b = self.function_table[self.program_name]['vars'][self.latest_var]['dir']
+            self.constant_table['int'].append(dir_b)
+            cons_dir = self.constant_table['int'].index(dir_b) + 4500
+            num_temps = self.function_table[self.program_name]['num_temps']
+            t_dir = int(num_temps.split('\u001f')[0]) + 3000
+            self.function_table[self.program_name]['num_temps'] = self.update_num_temps(
+                num_temps, 0, 2)
+            self.quadruples.append(Quadruple(self.displacements.pop(), t_addr, '+', t_dir))
+            self.quadruples.append(Quadruple(cons_dir, t_dir, '+', t_dir + 1))
+            self.quad_counter += 2
+            self.last_arr_t.append(t_dir + 1)
+        self.stack_of_stacks.pop()
+        self.stack_of_stacks.pop()
+        print('v3 end')
 
     @_('ID', 'ID DOT ID')
     def id_or_attribute(self, p):
@@ -587,27 +800,7 @@ class DomasParser(Parser):
             return p[0] + p[1] + p[2]
         return p[0]
 
-    @_('')
-    def v1(self, p):
-        # Checar si la cosa es arreglo
-        return None
-
-    @_('')
-    def v2(self, p):
-        # Checar expresion es float o int y que sea <= tam
-        return None
-
-    @_('')
-    def v3(self, p):
-        # Checar expresion es float o int, que sea <= tam y guardarlo somewhere
-        return None
-
-    @_('')
-    def v4(self, p):
-        # Checar expresion es float o int, multiplicar por la cosa que guardamos en v3 y checar que sea <= tam
-        return None
-
-    @_('ID', 'ID DOT ID', 'CTE_I', 'CTE_F', 'CTE_STRING', 'cte_bool', 'call_to_function')
+    @_('variable', 'CTE_I', 'CTE_F', 'CTE_STRING', 'cte_bool', 'call_to_function')
     def var_cte(self, p):
         offset = 4500
         # print('var_cte', off)
@@ -668,14 +861,15 @@ class DomasParser(Parser):
                 else:
                     var_dir = self.function_table[self.program_name]['vars'][whole_p]['dir']
                 return {'value': whole_p, 'type': cte_type, 'dir': var_dir}
+            print('cte', p[0])
 
         return {'value': p[0], 'type': cte_type, 'dir': cons_dir}
 
-    @_('constant e2 operator e3 expression', 'constant e2', 'LPAREN e1 expression RPAREN e4', 'LPAREN e1 expression RPAREN e4 operator e3 expression')
+    @_('constant e2 operator e3 expression', 'constant e2', 'LPAREN e1 expression RPAREN e4')
     def expression(self, p):
         # print(f'Expression line {sys._getframe().f_lineno}')
-        # print('Operators: ', self.stack_operators)
-        # print('Operands: ', self.stack_operands)
+        # print('Operators: ', self.stack_of_stacks[-1])
+        # print('Operands: ', self.stack_of_stacks[-2])
         # for quad in self.quadruples:
         #     print(quad)
         # print('Expression p[0]:', p[0])
@@ -683,65 +877,67 @@ class DomasParser(Parser):
 
     @_('')
     def e1(self, p):
-        self.stack_operators.append('(')
+        self.stack_of_stacks[-1].append('(')
 
     @_('')
     def e2(self, p):
-        # print(f'e2 line {sys._getframe().f_lineno}')
-        # print('Operators: ', self.stack_operators)
-        # print('Operands: ', self.stack_operands)
-        self.stack_operands.append(p[-1])
+        print(f'e2 line {sys._getframe().f_lineno}')
+        print(f'e2 line {sys._getframe().f_lineno}')
+        self.stack_of_stacks[-2].append(p[-1])
+        # print('Operators: ', self.stack_of_stacks[-1])
+        # print('Operands: ', self.stack_of_stacks[-2])
 
     @_('')
     def e3(self, p):
-        # print(f'e3 line {sys._getframe().f_lineno}')
-        # print('Operators: ', self.stack_operators)
-        # print('Operands: ', self.stack_operands)
+        print(f'e3 line {sys._getframe().f_lineno}')
+        # print('Operators: ', self.stack_of_stacks[-1])
+        # print('Operands: ', self.stack_of_stacks[-2])
         # print('p[-1]: ', p[-1])
-        # if len(self.stack_operators) > 0:
-        # print('Operators top: ', self.stack_operators[-1])
+        # if len(self.stack_of_stacks[-1]) > 0:
+        # print('Operators top: ', self.stack_of_stacks[-1][-1])
 
-        if len(self.stack_operators) == 0 or self.stack_operators[-1] == '(':
+        if len(self.stack_of_stacks[-1]) == 0 or self.stack_of_stacks[-1][-1] == '(':
             # print(
             #     f'operators empty or top is ) line {sys._getframe().f_lineno}')
-            self.stack_operators.append(p[-1])
-        elif self.stack_operators[-1] == '*' or self.stack_operators[-1] == '/':
+            self.stack_of_stacks[-1].append(p[-1])
+        elif self.stack_of_stacks[-1][-1] == '*' or self.stack_of_stacks[-1][-1] == '/':
             # print(f'operators top is * or / line {sys._getframe().f_lineno}')
             self.make_and_push_quad()
-            if (self.stack_operators and (self.stack_operators[-1] == '+' or self.stack_operators[-1] == '-')) and (p[-1] == '+' or p[-1] == '-'):
+            if (self.stack_of_stacks[-1] and (self.stack_of_stacks[-1][-1] == '+' or self.stack_of_stacks[-1][-1] == '-')) and (p[-1] == '+' or p[-1] == '-'):
                 # print(sys._getframe().f_lineno)
                 self.make_and_push_quad()
-            self.stack_operators.append(p[-1])
+            self.stack_of_stacks[-1].append(p[-1])
         elif p[-1] == '*' or p[-1] == '/':
             # print(f'p[-1] is * or / line {sys._getframe().f_lineno}')
-            self.stack_operators.append(p[-1])
-        elif self.stack_operators[-1] == '+' or self.stack_operators[-1] == '-':
+            self.stack_of_stacks[-1].append(p[-1])
+        elif self.stack_of_stacks[-1][-1] == '+' or self.stack_of_stacks[-1][-1] == '-':
             # print(f'operator top is + or - {sys._getframe().f_lineno}')
             self.make_and_push_quad()
-            self.stack_operators.append(p[-1])
+            self.stack_of_stacks[-1].append(p[-1])
         elif p[-1] == '+' or p[-1] == '-':
             # print(f'p[-1] is + or - line {sys._getframe().f_lineno}')
-            self.stack_operators.append(p[-1])
-        elif self.stack_operators[-1] in sm.comparison_ops or self.stack_operators[-1] in sm.equality_ops:
+            self.stack_of_stacks[-1].append(p[-1])
+        elif self.stack_of_stacks[-1][-1] in sm.comparison_ops or self.stack_of_stacks[-1][-1] in sm.equality_ops:
             # print(f'operator top is comp or equal {sys._getframe().f_lineno}')
             self.make_and_push_quad()
-            self.stack_operators.append(p[-1])
+            self.stack_of_stacks[-1].append(p[-1])
         elif p[-1] in sm.comparison_ops or p[-1] in sm.equality_ops:
             # print(f'operator top is comp or equal {sys._getframe().f_lineno}')
-            self.stack_operators.append(p[-1])
-        elif self.stack_operators[-1] in sm.logic_ops:
+            self.stack_of_stacks[-1].append(p[-1])
+        elif self.stack_of_stacks[-1][-1] in sm.logic_ops:
             # print(f'operator top is logic {sys._getframe().f_lineno}')
             self.make_and_push_quad()
-            self.stack_operators.append(p[-1])
+            self.stack_of_stacks[-1].append(p[-1])
         elif p[-1] in sm.logic_ops:
             # print(f'operator top is logic {sys._getframe().f_lineno}')
-            self.stack_operators.append(p[-1])
+            self.stack_of_stacks[-1].append(p[-1])
 
     @_('')
     def e4(self, p):
-        while(self.stack_operators[-1] != '('):
+        print('e4')
+        while(self.stack_of_stacks[-1][-1] != '('):
             self.make_and_push_quad()
-        self.stack_operators.pop()
+        self.stack_of_stacks[-1].pop()
 
     @_('AND', 'OR')
     def logical_operator(self, p):
@@ -770,16 +966,22 @@ class DomasParser(Parser):
     def read(self, p):
         return 'read'
 
-    @_('id_or_attribute r1 COMMA read_h', 'id_or_attribute r1 RPAREN SEMI')
+    @_('variable r1 COMMA read_h', 'variable r1 RPAREN SEMI')
     def read_h(self, p):
         return 'read_h'
 
     @_('')
     def r1(self, p):
         if p[-1] in self.function_table[self.curr_scope]['vars']:
-            var_addr = self.function_table[self.curr_scope]['vars'][p[-1]]['dir']
+            if self.check_var_is_array(p[-1]):
+                var_addr = '$' + str(self.last_arr_t.pop())
+            else:
+                var_addr = self.function_table[self.curr_scope]['vars'][p[-1]]['dir']
         elif p[-1] in self.function_table[self.program_name]['vars']:
-            var_addr = self.function_table[self.program_name]['vars'][p[-1]]['dir']
+            if self.check_var_is_array(p[-1]):
+                var_addr = '$' + str(self.last_arr_t.pop())
+            else:
+                var_addr = self.function_table[self.program_name]['vars'][p[-1]]['dir']
         else:
             raise UndeclaredIdError(p[-1])
         self.quadruples.append(Quadruple(-1, -1, 'read', var_addr))
@@ -793,15 +995,17 @@ class DomasParser(Parser):
 
     @_('')
     def ctf2(self, p):
-        self.tmp_s_operands = copy.copy(self.stack_operands)
-        self.tmp_s_operators = copy.copy(self.stack_operators)
-        self.stack_operands.clear()
-        self.stack_operators.clear()
+        # self.tmp_s_operands = copy.copy(self.stack_of_stacks[-2])
+        # self.tmp_s_operators = copy.copy(self.stack_of_stacks[-1])
+        # self.stack_of_stacks[-2].clear()
+        # self.stack_of_stacks[-1].clear()
+        self.stack_of_stacks.append([])
+        self.stack_of_stacks.append([])
 
     @_('')
     def ctf3(self, p):
-        self.stack_operands = self.tmp_s_operands
-        self.stack_operators = self.tmp_s_operators
+        self.stack_of_stacks.pop()
+        self.stack_of_stacks.pop()
 
     @_('')
     def ctf0(self, p):
@@ -820,9 +1024,6 @@ class DomasParser(Parser):
 
     @_('ID ctf1_exists_in_func_table', 'ID DOT ID')
     def function_or_method(self, p):
-        # print('function_or_method')
-        # for num, quad in enumerate(self.quadruples, start=1):
-        #     print(num, quad)
         if(len(p) == 2):
             if not p[0] in self.function_table:
                 raise SyntaxError(f'function {p[0]} is not defined')
@@ -858,11 +1059,13 @@ class DomasParser(Parser):
 
     @_('')
     def pr1(self, p):
+        print('yu,mmy')
         made_quad = False
-        while(len(self.stack_operators)):
-            ro = self.stack_operands.pop()
-            lo = self.stack_operands.pop()
-            op = self.stack_operators.pop()
+        while(len(self.stack_of_stacks[-1])):
+            print('ringriehierbrg')
+            ro = self.stack_of_stacks[-2].pop()
+            lo = self.stack_of_stacks[-2].pop()
+            op = self.stack_of_stacks[-1].pop()
             self.last_type = sm.checkOperation(lo['type'], ro['type'], op)
             idx = self.types.index(self.last_type)
             num_temps = self.function_table[self.curr_scope]['num_temps']
@@ -870,8 +1073,16 @@ class DomasParser(Parser):
                 int(num_temps.split('\u001f')[idx]) + 3000
             self.function_table[self.curr_scope]['num_temps'] = self.update_num_temps(
                 num_temps, idx)
+            if not var['dir'] in range(4500,6000) and self.check_var_is_array(lo['value']):
+                lo_dir = '$' + str(self.last_arr_t.pop())
+            else:
+                lo_dir = lo['dir']
+            if not var['dir'] in range(4500,6000) and self.check_var_is_array(ro['value']):
+                ro_dir = '$' + str(self.last_arr_t.pop())
+            else:
+                ro_dir = ro['dir']
             self.quadruples.append(
-                Quadruple(lo['dir'], ro['dir'], op, t_dir))
+                Quadruple(lo_dir, ro_dir, op, t_dir))
             self.temp_counter += 1
             self.quad_counter += 1
             made_quad = True
@@ -881,9 +1092,17 @@ class DomasParser(Parser):
                 Quadruple(-1, -1, 'print', last_quad.res))
             self.quad_counter += 1
         else:
+            print(self.stack_of_stacks[-2][-1])
+            var = self.stack_of_stacks[-2].pop()
+            if not var['dir'] in range(4500,6000) and self.check_var_is_array(var['value']):
+                var_dir = '$' + str(self.last_arr_t.pop())
+                print('humberto come cAQuita')
+            else:
+                var_dir = var['dir']
             self.quadruples.append(
-                Quadruple(-1, -1, 'print', self.stack_operands.pop()['dir']))
+                Quadruple(-1, -1, 'print', var_dir))
             self.quad_counter += 1
+        print('come caquita')
 
     @_('TRUE', 'FALSE')
     def cte_bool(self, p):
@@ -895,24 +1114,32 @@ class DomasParser(Parser):
 
     @_('')
     def dec1(self, p):
-        while len(self.stack_operators):
-            offset = 800 * len(self.types) * 2
-            ro = self.stack_operands.pop()
-            lo = self.stack_operands.pop()
-            op = self.stack_operators.pop()
+        while len(self.stack_of_stacks[-1]):
+            ro = self.stack_of_stacks[-2].pop()
+            lo = self.stack_of_stacks[-2].pop()
+            op = self.stack_of_stacks[-1].pop()
             self.last_type = sm.checkOperation(lo['type'], ro['type'], op)
             idx = self.types.index(self.last_type)
             num_temps = self.function_table[self.curr_scope]['num_temps']
             t_dir = idx * 300 + 3000
+            r_type = sm.checkOperation(lo['type'], ro['type'], op)
+            self.stack_of_stacks[-2].append(
+                {'value': 't' + str(self.temp_counter), 'type': r_type, 'dir': t_dir})
             self.function_table[self.curr_scope]['num_temps'] = self.update_num_temps(
                 num_temps, idx)
+            if self.check_var_is_array(lo['value']):
+                lo_dir = '$' + str(self.last_arr_t.pop())
+            else:
+                lo_dir = lo['dir']
+            if self.check_var_is_array(ro['value']):
+                ro_dir = '$' + str(self.last_arr_t.pop())
+            else:
+                ro_dir = ro['dir']
             self.quadruples.append(
-                Quadruple(lo['dir'], ro['dir'], op, t_dir))
+                Quadruple(lo_dir, ro_dir, op, t_dir))
             self.temp_counter += 1
             self.quad_counter += 1
 
-        # print(f'dec1 line {sys._getframe().f_lineno}')
-        # print('Last type:', self.last_type)
         if self.last_type != 'bool':
             raise SyntaxError(
                 'Expression to evaluate in if statement is not boolean')
@@ -921,9 +1148,7 @@ class DomasParser(Parser):
             self.quadruples.append(Quadruple(-1, last_quad, 'goto_f', -1))
             self.jumps.append(self.quad_counter)
             self.quad_counter += 1
-        # print('Cuadruplos:')
-        # for quad in self.quadruples:
-        #     print(quad)
+
 
     @_('dec2 ELSE LCURL statements RCURL dec3', 'empty dec4')
     def else_stm(self, p):
@@ -961,24 +1186,31 @@ class DomasParser(Parser):
 
     @_('')
     def con1(self, p):
-        while len(self.stack_operators):
-            offset = 800 * len(self.types) * 2
-            ro = self.stack_operands.pop()
-            lo = self.stack_operands.pop()
-            op = self.stack_operators.pop()
+        while len(self.stack_of_stacks[-1]):
+            ro = self.stack_of_stacks[-2].pop()
+            lo = self.stack_of_stacks[-2].pop()
+            op = self.stack_of_stacks[-1].pop()
             self.last_type = sm.checkOperation(lo['type'], ro['type'], op)
             idx = self.types.index(self.last_type)
             num_temps = self.function_table[self.curr_scope]['num_temps']
             t_dir = idx * 300 + 3000
             self.function_table[self.curr_scope]['num_temps'] = self.update_num_temps(
                 num_temps, idx)
+            r_type = sm.checkOperation(lo['type'], ro['type'], op)
+            self.stack_of_stacks[-2].append(
+                {'value': 't' + str(self.temp_counter), 'type': r_type, 'dir': t_dir})
+            if self.check_var_is_array(lo['value']):
+                lo_dir = '$' + str(self.last_arr_t.pop())
+            else:
+                lo_dir = lo['dir']
+            if self.check_var_is_array(ro['value']):
+                ro_dir = '$' + str(self.last_arr_t.pop())
+            else:
+                ro_dir = ro['dir']
             self.quadruples.append(
-                Quadruple(lo['dir'], ro['dir'], op, t_dir))
+                Quadruple(lo_dir, ro_dir, op, t_dir))
             self.temp_counter += 1
             self.quad_counter += 1
-        # for quad in self.quadruples:
-        #     print(quad)
-        # print('Last type:', self.last_type)
         if self.last_type != 'bool':
             raise SyntaxError(
                 'Expression to evaluate in if statement is not boolean')
@@ -990,88 +1222,67 @@ class DomasParser(Parser):
 
     @_('')
     def con2(self, p):
-        # print(f'con2 line {sys._getframe().f_lineno}')
         falso = self.jumps.pop()
         ret = self.jumps.pop()
         self.quadruples.append(Quadruple(-1, -1, 'goto', ret))
         self.quadruples[falso - 1].res = self.quad_counter + 1
         self.quad_counter += 1
-        # for num, quad in enumerate(self.quadruples, start=1):
-        #     print(num, quad)
 
-    @_('FOR variable ass1 EQUALS expression nc0 UNTIL expression nc1 DO nc2 LCURL statements RCURL nc3')
+    @_('FOR variable ass1 EQUALS expression ass2 nc0 UNTIL expression nc1 DO nc2 LCURL statements RCURL nc3')
     def non_conditional(self, p):
         return 'non_conditional'
 
     @_('')
     def nc0(self, p):
-        while len(self.stack_operators):
-            offset = 800 * len(self.types) * 2
-            ro = self.stack_operands.pop()
-            lo = self.stack_operands.pop()
-            op = self.stack_operators.pop()
-            self.last_type = sm.checkOperation(lo['type'], ro['type'], op)
-            idx = self.types.index(self.last_type)
-            num_temps = self.function_table[self.curr_scope]['num_temps']
-            self.function_table[self.curr_scope]['num_temps'] = self.update_num_temps(
-                num_temps, idx)
-            t_dir = idx * 300 + 3000
-            self.quadruples.append(
-                Quadruple(lo['dir'], ro['dir'], op, t_dir))
-            self.temp_counter += 1
-            self.quad_counter += 1
-        # print(f'nc0 line {sys._getframe().f_lineno}')
-        if len(self.stack_operands) == 0 == 0 and (self.last_type != 'int' and self.last_type != 'float'):
-            raise SyntaxError(
-                'Expression to evaluate in for statement is not integer or float')
-        elif p[-1]['type'] != 'int' and p[-1]['type'] != 'float':
-            raise SyntaxError(
-                'Expression to evaluate in for statement is not integer or float')
-        elif len(self.stack_operands) == 0:
-            last_quad = self.quadruples[-1].res
-            self.quadruples.append(
-                Quadruple(self.latest_var, last_quad, '=', 't' + str(self.temp_counter)))
-            self.jumps.append(self.quad_counter)
-            self.quad_counter += 1
-            self.temp_counter += 1
-        else:
-            self.quadruples.append(
-                Quadruple(self.latest_var, p[-1]['value'], '=', 't' + str(self.temp_counter)))
-            self.jumps.append(self.quad_counter)
-            self.quad_counter += 1
-            self.temp_counter += 1
+        self.for_var_dir.append(self.quadruples[-1].res)
 
     @_('')
     def nc1(self, p):
-        # print(f'dec1 line {sys._getframe().f_lineno}')
-        # print('Cuadruplos:')
-        # for num, quad in enumerate(self.quadruples, start=1):
-        #     print(num, quad)
-        while len(self.stack_operators):
+        while len(self.stack_of_stacks[-1]):
             self.make_and_push_quad()
-        if len(self.stack_operands) == 0 and (self.last_type != 'int' and self.last_type != 'float'):
+        if len(self.stack_of_stacks[-2]) == 0 and (self.last_type != 'int' and self.last_type != 'float'):
             raise SyntaxError(
                 'Expression to evaluate in for statement is not integer or float')
         elif p[-1]['type'] != 'int' and p[-1]['type'] != 'float':
             raise SyntaxError(
                 'Expression to evaluate in for statement is not integer or float')
-        elif len(self.stack_operands) == 0:
-            lo = self.jumps[-1]
-            last_quad = self.quadruples[-1].res
+        elif len(self.stack_of_stacks[-2]) == 0:
+            print(f'nc1 line {sys._getframe().f_lineno}')
+            last_quad = quadruples[-1].res
+            num_temps = self.function_table[self.curr_scope]['num_temps']
+            t_dir = 3 * 300+ \
+                int(num_temps.split('\u001f')[3]) + 3000
+            self.function_table[self.curr_scope]['num_temps'] = self.update_num_temps(
+                num_temps, 3)
+            if self.check_var_is_array(last_quad['value']):
+                var_dir = '$' + str(self.last_arr_t.pop())
+            else:
+                var_dir = last_quad['dir']
             self.quadruples.append(
-                Quadruple('r' + str(lo), last_quad, '<=', -1))
+                Quadruple(self.for_var_dir[-1], var_dir, '<=', t_dir))
             self.jumps.append(self.quad_counter)
             self.quad_counter += 1
         else:
-            lo = self.jumps[-1]
+            print(f'nc1 line {sys._getframe().f_lineno}')
+            num_temps = self.function_table[self.curr_scope]['num_temps']
+            t_dir = 3 * 300+ \
+                int(num_temps.split('\u001f')[3]) + 3000
+            self.function_table[self.curr_scope]['num_temps'] = self.update_num_temps(
+                num_temps, 3)
+            if self.check_var_is_array(p[-1]['value']):
+                var_dir = '$' + str(self.last_arr_t.pop())
+            else:
+                var_dir = p[-1]['dir']
+
             self.quadruples.append(
-                Quadruple('r' + str(lo), p[-1]['value'], '<=', 't' + str(self.temp_counter)))
+                Quadruple(self.for_var_dir[-1], var_dir, '<=', t_dir))
             self.jumps.append(self.quad_counter)
             self.quad_counter += 1
             self.temp_counter += 1
 
     @_('')
     def nc2(self, p):
+        print(f'nc2 line {sys._getframe().f_lineno}')
         last_quad = self.quadruples[-1].res
         self.quadruples.append(Quadruple(-1, last_quad, 'goto_f', -1))
         self.jumps.append(self.quad_counter)
@@ -1079,18 +1290,19 @@ class DomasParser(Parser):
 
     @_('')
     def nc3(self, p):
-        # print(f'nc3 line {sys._getframe().f_lineno}')
-        # print('Saltos:', self.jumps)
         falso = self.jumps.pop()
         cond = self.jumps.pop()
-        to_update = self.jumps.pop()
-
+        print(f'nc3 line {sys._getframe().f_lineno}')
+        if not 1 in self.constant_table['int']:
+            self.constant_table['int'].append(1)
+        one_dir = self.constant_table['int'].index(1) + 4500
         self.quadruples.append(
-            Quadruple('r' + str(to_update), 1, '+', 'r' + str(to_update)))
+            Quadruple(self.for_var_dir[-1], one_dir, '+', self.for_var_dir[-1]))
         self.quad_counter += 1
         self.quadruples.append(Quadruple(-1, -1, 'goto', cond))
         self.quad_counter += 1
         self.quadruples[falso - 1].res = self.quad_counter
+        self.for_var_dir.pop()
 
     @_('RETURN LPAREN expression fr0 RPAREN SEMI fr1')
     def function_returns(self, p):
@@ -1099,7 +1311,7 @@ class DomasParser(Parser):
     @_('')
     def fr0(self, p):
         made_quad = False
-        while(len(self.stack_operators)):
+        while(len(self.stack_of_stacks[-1])):
             self.make_and_push_quad()
             made_quad = True
         if made_quad:
@@ -1107,11 +1319,10 @@ class DomasParser(Parser):
             self.quadruples.append(
                 Quadruple(last_quad.res, -1, 'return', self.function_table[self.program_name]['vars'][self.curr_scope]['real_dir']))
             self.quad_counter += 1
-            self.stack_operands.pop()
+            self.stack_of_stacks[-2].pop()
         else:
-            # print(json.dumps(self.function_table, indent=2))
             self.quadruples.append(
-                Quadruple(self.stack_operands.pop()['dir'], -1, 'return', self.function_table[self.program_name]['vars'][self.curr_scope]['real_dir']))
+                Quadruple(self.stack_of_stacks[-2].pop()['dir'], -1, 'return', self.function_table[self.program_name]['vars'][self.curr_scope]['real_dir']))
             self.quad_counter += 1
 
     @_('')
@@ -1148,11 +1359,11 @@ class DomasParser(Parser):
     @ _('')
     def fp1(self, p):
         made_quad = False
-        while(len(self.stack_operators)):
+        while(len(self.stack_of_stacks[-1])):
             offset = 800 * len(self.types) * 2
-            ro = self.stack_operands.pop()
-            lo = self.stack_operands.pop()
-            op = self.stack_operators.pop()
+            ro = self.stack_of_stacks[-2].pop()
+            lo = self.stack_of_stacks[-2].pop()
+            op = self.stack_of_stacks[-1].pop()
             self.last_type = sm.checkOperation(lo['type'], ro['type'], op)
             idx = self.types.index(self.last_type)
             num_temps = self.function_table[self.curr_scope]['num_temps']
@@ -1176,7 +1387,7 @@ class DomasParser(Parser):
             self.quad_counter += 1
             self.param_counter += 1
         else:
-            val = self.stack_operands.pop()
+            val = self.stack_of_stacks[-2].pop()
             if self.param_counter == len(self.function_table[self.called_func]['params']):
                 raise SyntaxError('Too many params')
             param_type = (val['dir'] % 1500) // 300
@@ -1198,10 +1409,10 @@ class DomasParser(Parser):
     @ _('')
     def main2(self, p):
         self.quadruples.append(Quadruple(-1, -1, 'end', -1))
-        # del self.function_table[self.program_name]['vars']
-        # del self.function_table['main']['vars']
-        # for class_name in self.class_table:
-        #     del self.class_table[class_name]['vars']
+        del self.function_table[self.program_name]['vars']
+        del self.function_table['main']['vars']
+        for class_name in self.class_table:
+            del self.class_table[class_name]['vars']
         pass
 
     @ _('')

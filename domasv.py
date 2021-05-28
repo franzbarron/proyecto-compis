@@ -479,6 +479,36 @@ def do_read(_, __, res):
         print(e)
 
 
+def do_verify(_, right, res):
+    local_mem = local_mems[-1]
+    temp_mem = temp_mems[-1]
+    memories = {
+        '0': global_mem,
+        '1': local_mem,
+        '2': temp_mem,
+        '3': constants_mem
+    }
+    res_dir_val = memories[str(int(res) // 1500)
+                           ].get_value_of_address(int(res) % 1500)
+    if res_dir_val < 0 or res_dir_val >= int(right):
+        raise IndexError('Index out of range')
+
+
+def check_if_address(val):
+    if not '$' in val:
+        return val
+    local_mem = local_mems[-1]
+    temp_mem = temp_mems[-1]
+    memories = {
+        '0': global_mem,
+        '1': local_mem,
+        '2': temp_mem,
+        '3': constants_mem
+    }
+    return memories[str(int(val[1:]) // 1500)
+                    ].get_value_of_address(int(val[1:]) % 1500)
+
+
 def run_quad(op, left, right, res):
     global ip
     operations = {
@@ -504,9 +534,14 @@ def run_quad(op, left, right, res):
         'param': do_param,
         'end_func': do_endfunc,
         'return': do_return,
-        'end': do_end
+        'end': do_end,
+        'verify': do_verify
     }
     # print(ip, op, left, right, res)
+    if op != 'goto' and op != 'gosub' and op != 'verify' and op != 'end' and op != 'end_func' and op != 'era':
+        left = check_if_address(left)
+        right = check_if_address(right)
+        res = check_if_address(res)
     operations[op](left, right, res)
     if op != 'goto' and op != 'goto_f' and op != 'gosub':
         ip += 1

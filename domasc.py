@@ -2,6 +2,7 @@ from lexer_parser.domas_lexer import DomasLexer
 from lexer_parser.domas_parser import DomasParser
 # from domas_parser import DomasParser
 import sys
+import traceback
 import json
 
 
@@ -59,9 +60,7 @@ if __name__ == '__main__':
         try:
             program_name, func_dir, class_dir, constant_table, quads = parser.parse(
                 lexer.tokenize(fp.read()))
-            # print(result)
             outfile = open(program_name + '.domas', 'w')
-            # outfile.write(json.dumps(func_dir, indent=2))
             parse_func_dir(func_dir, outfile)
             outfile.write('#\n')
             parse_class_dir(class_dir, outfile)
@@ -70,8 +69,11 @@ if __name__ == '__main__':
             outfile.write('#\n')
             for quad in quads:
                 outfile.write(str(quad) + '\n')
+            print('Code compiled successfully to', program_name + '.domas')
         except EOFError:
             pass
         except Exception as err:
-            print(err)
+            exception_type, exception_object, exception_traceback = sys.exc_info()
+            traceback.print_exception(
+                exception_type, exception_object, exception_traceback)
             pass

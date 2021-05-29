@@ -560,10 +560,10 @@ if __name__ == '__main__':
             if readline == '#\n':
                 break
             reconstruct_func_dir(readline)
-        ints, floats, strings, bools, _voids, * \
+        ints, floats, strings, bools, * \
             _ = func_dir['main']['num_types'].split('\u001f')
         local_mems.append(Memory(ints, floats, strings, bools))
-        ints, floats, strings, bools, _voids, * \
+        ints, floats, strings, bools, * \
             _ = func_dir['main']['num_temps'].split('\u001f')
         temp_mems.append(Memory(ints, floats, strings, bools))
         while True:

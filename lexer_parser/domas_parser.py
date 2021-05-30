@@ -24,6 +24,7 @@ class DomasParser(Parser):
     last_arr_t = []
     displacements = []
     for_var_dir = []
+    break_stack = []
     # Lists
     quadruples = []
     jumps = []
@@ -470,9 +471,17 @@ class DomasParser(Parser):
             'type': p[-1], 'dir': idx * 300 + int(num_types.split('\u001f')[idx]) + offset}
 
     @_('assignment', 'call_to_void_function', 'function_returns', 'read', 'print',
-       'decision_statement', 'repetition_statement')
+       'decision_statement', 'repetition_statement', 'BREAK br0 SEMI')
     def statement(self, p):
         return 'statement'
+
+    @_('')
+    def br0(self, p):
+        if len(self.jumps) == 0:
+            raise SyntaxError(':(')
+        self.quadruples.append(Quadruple(-1, -1, 'goto', None))
+        self.break_stack.append(self.quad_counter)
+        self.quad_counter += 1
 
     @_('variable ass1 EQUALS expression ass2 SEMI')
     def assignment(self, p):
@@ -1167,6 +1176,9 @@ class DomasParser(Parser):
         ret = self.jumps.pop()
         self.quadruples.append(Quadruple(-1, -1, 'goto', ret))
         self.quadruples[falso - 1].res = self.quad_counter + 1
+        if len(self.break_stack):
+            bq = self.break_stack.pop()
+            self.quadruples[bq - 1].res = self.quad_counter + 1
         self.quad_counter += 1
 
     @_('FOR variable ass1 EQUALS expression ass2 nc0 UNTIL expression nc1 DO nc2 LCURL statements RCURL nc3')
@@ -1257,6 +1269,9 @@ class DomasParser(Parser):
         self.quadruples.append(Quadruple(-1, -1, 'goto', cond))
         self.quad_counter += 1
         self.quadruples[falso - 1].res = self.quad_counter
+        if len(self.break_stack):
+            bq = self.break_stack.pop()
+            self.quadruples[bq - 1].res = self.quad_counter + 1
         self.for_var_dir.pop()
 
     @_('RETURN LPAREN expression fr0 RPAREN SEMI fr1')

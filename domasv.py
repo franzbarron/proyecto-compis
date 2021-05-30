@@ -529,7 +529,7 @@ def run_quad(op, left, right, res):
         'end': do_end,
         'verify': do_verify
     }
-    print(ip, op, left, right, res)
+    # print(ip, op, left, right, res)
     if op != 'goto' and op != 'gosub' and op != 'verify' and op != 'end' and op != 'end_func' and op != 'era':
         left = check_if_address(left)
         right = check_if_address(right)

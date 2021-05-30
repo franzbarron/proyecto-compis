@@ -9,7 +9,7 @@ class DomasLexer(Lexer):
         METHODS, FUNCTION, TRUE, FALSE, FOR, UNTIL, ID, CTE_I, CTE_F,
         CTE_STRING, PLUS, MINUS, MULTIPLY, DIVIDE, EQUALS, LPAREN, RPAREN,
         LCURL, RCURL, LBRACKET, RBRACKET, LT, GT, NEQ, LEQ, GEQ, SAME, COMMA,
-        SEMI, COLON, DOT, AND, OR
+        SEMI, COLON, DOT, AND, OR, BREAK
     }
 
     reserved_words = ['program', 'var', 'main', 'class', 'int', 'float',
@@ -74,6 +74,7 @@ class DomasLexer(Lexer):
     ID['false'] = FALSE
     ID['for'] = FOR
     ID['until'] = UNTIL
+    ID['break'] = BREAK
 
     def CTE_I(self, t):
         t.value = int(t.value)

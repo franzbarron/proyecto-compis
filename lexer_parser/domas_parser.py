@@ -34,6 +34,7 @@ class DomasParser(Parser):
     attr_counter = 1
     # Aux vars
     current_class = None
+    last_arr_id = None
     last_type = None
     has_returned = False
     types = ['int', 'float', 'string', 'bool', 'void']
@@ -485,36 +486,72 @@ class DomasParser(Parser):
             self.latest_var = p[-1]
         else:
             self.latest_var = p[-1]
+        # if self.current_class != None:
+        #     if p[-1] in self.class_table[self.current_class]['vars']:
+        #         if 'd1' in self.class_table[self.current_class]['vars'][p[-1]]:
+        #             self.latest_var = '$' + str(self.last_arr_t.pop())
+        #         else:
+        #             self.latest_var = self.class_table[self.current_class]['vars'][p[-1]]['dir']
+        #     else:
+        #         if 'd1' in self.function_table[self.curr_scope]['vars'][p[-1]]:
+        #             self.latest_var = '$' + str(self.last_arr_t.pop())
+        #         else:
+        #             self.latest_var = self.function_table[self.curr_scope]['vars'][p[-1]]['dir']
+        # elif p[-1] in self.function_table[self.curr_scope]['vars']:
+        #     if 'd1' in self.function_table[self.curr_scope]['vars'][p[-1]]:
+        #         self.latest_var = '$' + str(self.last_arr_t.pop())
+        #     else:
+        #         self.latest_var = self.function_table[self.curr_scope]['vars'][p[-1]]['dir']
+        # else:
+        #     if 'd1' in self.function_table[self.program_name]['vars'][p[-1]]:
+        #         self.latest_var = '$' + str(self.last_arr_t.pop())
+        #     else:
+        #         self.latest_var = self.function_table[self.program_name]['vars'][p[-1]]['dir']
 
     @_('')
     def ass2(self, p):
+        print('ass2', self.last_arr_t)
+        print('operators', self.stack_of_stacks[-1])
+        print('operanda', self.stack_of_stacks[-2])
+        made_quad = False
         while(len(self.stack_of_stacks[-1])):
             self.make_and_push_quad()
+            made_quad = True
         lo = self.stack_of_stacks[-2].pop()
         v_type = self.get_var_type(self.latest_var)
         self.last_type = sm.checkOperation(v_type, lo['type'], '=')
+        if not made_quad and self.check_var_is_array(lo['value']):
+            print(lo)
+            lo_dir = '$' + str(self.last_arr_t.pop())
+        else:
+            lo_dir = lo['dir']
         if self.current_class != None:
             if self.latest_var in self.class_table[self.current_class]['vars']:
                 if 'd1' in self.class_table[self.current_class]['vars'][self.latest_var]:
+                    print(self.latest_var)
                     var_dir = '$' + str(self.last_arr_t.pop())
                 else:
                     var_dir = self.class_table[self.current_class]['vars'][self.latest_var]['dir']
             else:
                 if 'd1' in self.function_table[self.curr_scope]['vars'][self.latest_var]:
+                    print(self.latest_var)
                     var_dir = '$' + str(self.last_arr_t.pop())
                 else:
                     var_dir = self.function_table[self.curr_scope]['vars'][self.latest_var]['dir']
         elif self.latest_var in self.function_table[self.curr_scope]['vars']:
             if 'd1' in self.function_table[self.curr_scope]['vars'][self.latest_var]:
+                print(self.latest_var)
                 var_dir = '$' + str(self.last_arr_t.pop())
             else:
                 var_dir = self.function_table[self.curr_scope]['vars'][self.latest_var]['dir']
         else:
             if 'd1' in self.function_table[self.program_name]['vars'][self.latest_var]:
+                print(self.latest_var)
                 var_dir = '$' + str(self.last_arr_t.pop())
             else:
                 var_dir = self.function_table[self.program_name]['vars'][self.latest_var]['dir']
-        q = Quadruple(lo['dir'], -1, '=', var_dir)
+        q = Quadruple(lo_dir, -1, '=', var_dir)
+        print(q)
         self.quadruples.append(q)
         self.quad_counter += 1
 
@@ -535,22 +572,25 @@ class DomasParser(Parser):
         else:
             if not 'd1' in self.function_table[self.program_name]['vars'][p[-1]]:
                 raise TypeError(f'{p[-1]} is not an array or vector')
-        self.latest_var = p[-1]
+        self.last_arr_id = p[-1]
         self.stack_of_stacks.append([])
         self.stack_of_stacks.append([])
 
     @_('')
     def v4(self, p):
-        self.check_variable_exists(self.latest_var)
+        self.check_variable_exists(self.last_arr_id)
         if self.current_class != None:
-            if not 'd2' in self.class_table[self.current_class]['vars'][self.latest_var]:
-                raise TypeError(f'{self.latest_var} is not an array or vector')
-        elif self.latest_var in self.function_table[self.curr_scope]['vars']:
-            if not 'd2' in self.function_table[self.curr_scope]['vars'][self.latest_var]:
-                raise TypeError(f'{self.latest_var} is not an array or vector')
+            if not 'd2' in self.class_table[self.current_class]['vars'][self.last_arr_id]:
+                raise TypeError(
+                    f'{self.last_arr_id} is not an array or vector')
+        elif self.last_arr_id in self.function_table[self.curr_scope]['vars']:
+            if not 'd2' in self.function_table[self.curr_scope]['vars'][self.last_arr_id]:
+                raise TypeError(
+                    f'{self.last_arr_id} is not an array or vector')
         else:
-            if not 'd2' in self.function_table[self.program_name]['vars'][self.latest_var]:
-                raise TypeError(f'{self.latest_var} is not an array or vector')
+            if not 'd2' in self.function_table[self.program_name]['vars'][self.last_arr_id]:
+                raise TypeError(
+                    f'{self.last_arr_id} is not an array or vector')
         self.stack_of_stacks.append([])
         self.stack_of_stacks.append([])
 
@@ -558,7 +598,6 @@ class DomasParser(Parser):
     def v1(self, p):
         made_quad = False
         while(len(self.stack_of_stacks[-1])):
-            print('v1 while')
             ro = self.stack_of_stacks[-2].pop()
             lo = self.stack_of_stacks[-2].pop()
             op = self.stack_of_stacks[-1].pop()
@@ -576,15 +615,15 @@ class DomasParser(Parser):
             made_quad = True
         if self.current_class != None:
             pass
-        elif self.latest_var in self.function_table[self.curr_scope]['vars']:
+        elif self.last_arr_id in self.function_table[self.curr_scope]['vars']:
             t_addr = self.quadruples[-1].res if made_quad else self.stack_of_stacks[-2].pop()[
                 'dir']
             if (t_addr % 1500) // 300 != 0 and (t_addr % 1500) // 300 != 1:
                 raise TypeError('Type mismatch')
-            lms = self.function_table[self.curr_scope]['vars'][self.latest_var]['d1']
+            lms = self.function_table[self.curr_scope]['vars'][self.last_arr_id]['d1']
             self.quadruples.append(Quadruple(0, lms, 'verify', t_addr))
             self.quad_counter += 1
-            dir_b = self.function_table[self.curr_scope]['vars'][self.latest_var]['dir']
+            dir_b = self.function_table[self.curr_scope]['vars'][self.last_arr_id]['dir']
             if not dir_b in self.constant_table['int']:
                 self.constant_table['int'].append(dir_b)
             cons_dir = self.constant_table['int'].index(dir_b) + 4500
@@ -600,14 +639,13 @@ class DomasParser(Parser):
                 'dir']
             if (t_addr % 1500) // 300 != 0 and (t_addr % 1500) // 300 != 1:
                 raise TypeError('Type mismatch')
-            lms = self.function_table[self.program_name]['vars'][self.latest_var]['d1']
+            lms = self.function_table[self.program_name]['vars'][self.last_arr_id]['d1']
             self.quadruples.append(Quadruple(0, lms, 'verify', t_addr))
             self.quad_counter += 1
-            dir_b = self.function_table[self.program_name]['vars'][self.latest_var]['dir']
+            dir_b = self.function_table[self.program_name]['vars'][self.last_arr_id]['dir']
             if not dir_b in self.constant_table['int']:
                 self.constant_table['int'].append(dir_b)
             cons_dir = self.constant_table['int'].index(dir_b) + 4500
-            print('v1 else', self.function_table[self.curr_scope])
             num_temps = self.function_table[self.curr_scope]['num_temps']
             t_dir = int(num_temps.split('\u001f')[0]) + 3000
             self.function_table[self.curr_scope]['num_temps'] = self.update_num_temps(
@@ -639,15 +677,15 @@ class DomasParser(Parser):
             made_quad = True
         if self.current_class != None:
             pass
-        elif self.latest_var in self.function_table[self.curr_scope]['vars']:
+        elif self.last_arr_id in self.function_table[self.curr_scope]['vars']:
             t_addr = self.quadruples[-1].res if made_quad else self.stack_of_stacks[-2].pop()[
                 'dir']
             if (t_addr % 1500) // 300 != 0 and (t_addr % 1500) // 300 != 1:
                 raise TypeError('Type mismatch')
-            lms = self.function_table[self.curr_scope]['vars'][self.latest_var]['d1']
+            lms = self.function_table[self.curr_scope]['vars'][self.last_arr_id]['d1']
             self.quadruples.append(Quadruple(0, lms, 'verify', t_addr))
             self.quad_counter += 1
-            d2 = self.function_table[self.curr_scope]['vars'][self.latest_var]['d2']
+            d2 = self.function_table[self.curr_scope]['vars'][self.last_arr_id]['d2']
             if not d2 in self.constant_table['int']:
                 self.constant_table['int'].append(d2)
             cons_dir = self.constant_table['int'].index(d2) + 4500
@@ -663,10 +701,10 @@ class DomasParser(Parser):
                 'dir']
             if (t_addr % 1500) // 300 != 0 and (t_addr % 1500) // 300 != 1:
                 raise TypeError('Type mismatch')
-            lms = self.function_table[self.program_name]['vars'][self.latest_var]['d1']
+            lms = self.function_table[self.program_name]['vars'][self.last_arr_id]['d1']
             self.quadruples.append(Quadruple(0, lms, 'verify', t_addr))
             self.quad_counter += 1
-            d2 = self.function_table[self.program_name]['vars'][self.latest_var]['d2']
+            d2 = self.function_table[self.program_name]['vars'][self.last_arr_id]['d2']
             if not d2 in self.constant_table['int']:
                 self.constant_table['int'].append(d2)
             cons_dir = self.constant_table['int'].index(d2) + 4500
@@ -701,15 +739,15 @@ class DomasParser(Parser):
             made_quad = True
         if self.current_class != None:
             pass
-        elif self.latest_var in self.function_table[self.curr_scope]['vars']:
+        elif self.last_arr_id in self.function_table[self.curr_scope]['vars']:
             t_addr = self.quadruples[-1].res if made_quad else self.stack_of_stacks[-2].pop()[
                 'dir']
             if (t_addr % 1500) // 300 != 0 and (t_addr % 1500) // 300 != 1:
                 raise TypeError('Type mismatch')
-            lms = self.function_table[self.curr_scope]['vars'][self.latest_var]['d2']
+            lms = self.function_table[self.curr_scope]['vars'][self.last_arr_id]['d2']
             self.quadruples.append(Quadruple(0, lms, 'verify', t_addr))
             self.quad_counter += 1
-            dir_b = self.function_table[self.curr_scope]['vars'][self.latest_var]['dir']
+            dir_b = self.function_table[self.curr_scope]['vars'][self.last_arr_id]['dir']
             if not dir_b in self.constant_table['int']:
                 self.constant_table['int'].append(dir_b)
             cons_dir = self.constant_table['int'].index(dir_b) + 4500
@@ -727,10 +765,10 @@ class DomasParser(Parser):
                 'dir']
             if (t_addr % 1500) // 300 != 0 and (t_addr % 1500) // 300 != 1:
                 raise TypeError('Type mismatch')
-            lms = self.function_table[self.program_name]['vars'][self.latest_var]['d2']
+            lms = self.function_table[self.program_name]['vars'][self.last_arr_id]['d2']
             self.quadruples.append(Quadruple(0, lms, 'verify', t_addr))
             self.quad_counter += 1
-            dir_b = self.function_table[self.program_name]['vars'][self.latest_var]['dir']
+            dir_b = self.function_table[self.program_name]['vars'][self.last_arr_id]['dir']
             if not dir_b in self.constant_table['int']:
                 self.constant_table['int'].append(dir_b)
             cons_dir = self.constant_table['int'].index(dir_b) + 4500
@@ -799,8 +837,10 @@ class DomasParser(Parser):
 
         return {'value': p[0], 'type': cte_type, 'dir': cons_dir}
 
-    @_('constant e2 operator e3 expression', 'constant e2', 'LPAREN e1 expression RPAREN e4')
+    @_('constant e2 operator e3 expression', 'constant e2', 'LPAREN e1 expression RPAREN e4', 'LPAREN e1 expression RPAREN e4 operator e3 expression')
     def expression(self, p):
+        if hasattr(p, 'LPAREN'):
+            return p[2]
         return p[0]
 
     @_('')
@@ -843,6 +883,7 @@ class DomasParser(Parser):
         while(self.stack_of_stacks[-1][-1] != '('):
             self.make_and_push_quad()
         self.stack_of_stacks[-1].pop()
+        print('e4', self.stack_of_stacks[-1])
 
     @_('AND', 'OR')
     def logical_operator(self, p):
@@ -974,11 +1015,11 @@ class DomasParser(Parser):
                 int(num_temps.split('\u001f')[idx]) + 3000
             self.function_table[self.curr_scope]['num_temps'] = self.update_num_temps(
                 num_temps, idx)
-            if not lo_dir['dir'] in range(4500, 6000) and self.check_var_is_array(lo['value']):
+            if not lo['dir'] in range(4500, 6000) and self.check_var_is_array(lo['value']):
                 lo_dir = '$' + str(self.last_arr_t.pop())
             else:
                 lo_dir = lo['dir']
-            if not ro_dir['dir'] in range(4500, 6000) and self.check_var_is_array(ro['value']):
+            if not ro['dir'] in range(4500, 6000) and self.check_var_is_array(ro['value']):
                 ro_dir = '$' + str(self.last_arr_t.pop())
             else:
                 ro_dir = ro['dir']
@@ -994,6 +1035,7 @@ class DomasParser(Parser):
             self.quad_counter += 1
         else:
             var = self.stack_of_stacks[-2].pop()
+            print('var', var)
             if not var['dir'] in range(4500, 6000) and self.check_var_is_array(var['value']):
                 var_dir = '$' + str(self.last_arr_t.pop())
             else:
@@ -1023,6 +1065,8 @@ class DomasParser(Parser):
             r_type = sm.checkOperation(lo['type'], ro['type'], op)
             self.stack_of_stacks[-2].append(
                 {'value': 't' + str(self.temp_counter), 'type': r_type, 'dir': t_dir})
+            print('dec1 t', {
+                  'value': 't' + str(self.temp_counter), 'type': r_type, 'dir': t_dir})
             self.function_table[self.curr_scope]['num_temps'] = self.update_num_temps(
                 num_temps, idx)
             if self.check_var_is_array(lo['value']):
@@ -1038,12 +1082,12 @@ class DomasParser(Parser):
             self.temp_counter += 1
             self.quad_counter += 1
 
-        if self.last_type != 'bool':
+        lo = self.stack_of_stacks[-2].pop()
+        if lo['type'] != 'bool':
             raise SyntaxError(
                 'Expression to evaluate in if statement is not boolean')
         else:
-            last_quad = self.quadruples[-1].res
-            self.quadruples.append(Quadruple(-1, last_quad, 'goto_f', -1))
+            self.quadruples.append(Quadruple(-1, lo['dir'], 'goto_f', -1))
             self.jumps.append(self.quad_counter)
             self.quad_counter += 1
 
@@ -1135,40 +1179,58 @@ class DomasParser(Parser):
 
     @_('')
     def nc1(self, p):
-        while len(self.stack_of_stacks[-1]):
-            self.make_and_push_quad()
-        if len(self.stack_of_stacks[-2]) == 0 and (self.last_type != 'int' and self.last_type != 'float'):
-            raise SyntaxError(
-                'Expression to evaluate in for statement is not integer or float')
-        elif p[-1]['type'] != 'int' and p[-1]['type'] != 'float':
-            raise SyntaxError(
-                'Expression to evaluate in for statement is not integer or float')
-        elif len(self.stack_of_stacks[-2]) == 0:
+        made_quad = False
+        while(len(self.stack_of_stacks[-1])):
+            ro = self.stack_of_stacks[-2].pop()
+            lo = self.stack_of_stacks[-2].pop()
+            op = self.stack_of_stacks[-1].pop()
+            self.last_type = sm.checkOperation(lo['type'], ro['type'], op)
+            idx = self.types.index(self.last_type)
+            num_temps = self.function_table[self.curr_scope]['num_temps']
+            t_dir = idx * 300 + \
+                int(num_temps.split('\u001f')[idx]) + 3000
+            self.function_table[self.curr_scope]['num_temps'] = self.update_num_temps(
+                num_temps, idx)
+            if not lo['dir'] in range(4500, 6000) and self.check_var_is_array(lo['value']):
+                lo_dir = '$' + str(self.last_arr_t.pop())
+            else:
+                lo_dir = lo['dir']
+            if not ro['dir'] in range(4500, 6000) and self.check_var_is_array(ro['value']):
+                ro_dir = '$' + str(self.last_arr_t.pop())
+            else:
+                ro_dir = ro['dir']
+            self.quadruples.append(
+                Quadruple(lo_dir, ro_dir, op, t_dir))
+            self.temp_counter += 1
+            self.quad_counter += 1
+            made_quad = True
+        if made_quad:
             last_quad = self.quadruples[-1].res
+            if (last_quad % 1500) // 300 != 0 and (last_quad % 1500) // 300 != 1:
+                raise TypeError("Type mismatch")
             num_temps = self.function_table[self.curr_scope]['num_temps']
             t_dir = 3 * 300 + \
                 int(num_temps.split('\u001f')[3]) + 3000
             self.function_table[self.curr_scope]['num_temps'] = self.update_num_temps(
                 num_temps, 3)
-            if self.check_var_is_array(last_quad['value']):
-                var_dir = '$' + str(self.last_arr_t.pop())
-            else:
-                var_dir = last_quad['dir']
             self.quadruples.append(
-                Quadruple(self.for_var_dir[-1], var_dir, '<=', t_dir))
+                Quadruple(self.for_var_dir[-1], last_quad, '<=', t_dir))
             self.jumps.append(self.quad_counter)
             self.quad_counter += 1
+            self.temp_counter += 1
         else:
+            var = self.stack_of_stacks[-2].pop()
+            if (var['dir'] % 1500) // 300 != 0 and (var['dir'] % 1500) // 300 != 1:
+                raise TypeError("Type mismatch")
             num_temps = self.function_table[self.curr_scope]['num_temps']
             t_dir = 3 * 300 + \
                 int(num_temps.split('\u001f')[3]) + 3000
             self.function_table[self.curr_scope]['num_temps'] = self.update_num_temps(
                 num_temps, 3)
-            if self.check_var_is_array(p[-1]['value']):
+            if self.check_var_is_array(var['value']):
                 var_dir = '$' + str(self.last_arr_t.pop())
             else:
-                var_dir = p[-1]['dir']
-
+                var_dir = var['dir']
             self.quadruples.append(
                 Quadruple(self.for_var_dir[-1], var_dir, '<=', t_dir))
             self.jumps.append(self.quad_counter)

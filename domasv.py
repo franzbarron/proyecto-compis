@@ -23,12 +23,11 @@ class Memory:
 
     def insert_bools(self, arr_bools):
         for idx, values in enumerate(arr_bools):
-            self.strings[idx] = bool(values)
+            self.bools[idx] = values == 'true'
 
     def get_value_of_address(self, address):
-        # print(address)
         if address < 300:
-            return self.ints[address]
+            return int(self.ints[address])
         elif address < 600:
             return self.floats[address % 300]
         elif address < 900:
@@ -80,7 +79,6 @@ read_values_stack = []
 
 
 def reconstruct_func_dir(line):
-    # print(line.split(' '))
     name, _rt, num_types, params, num_temps, start, *_ = line.split(' ')
     if name == 'main':
         func_dir[name] = {'num_types': num_types, 'num_temps': num_temps}
@@ -144,7 +142,6 @@ def do_multiplication(left, right, res):
     right_dir_val = memories[str(int(right) // 1500)
                              ].get_value_of_address(int(right) % 1500)
 
-    # print(left_dir_val, right_dir_val)
     mult_res = left_dir_val * right_dir_val
     memories[str(int(res) // 1500)].set_value_in_address(int(res) %
                                                          1500, mult_res)
@@ -187,8 +184,6 @@ def do_division(left, right, res):
 
 
 def compare_gt(left, right, res):
-    # print('gt', left, right, res)
-    # print(temp_mems[-1])
     local_mem = local_mems[-1]
     temp_mem = temp_mems[-1]
     memories = {
@@ -371,9 +366,8 @@ def do_gosub(left, _, __):
     global ip, local_mems, temp_mems, ip_stack
     local_mems.append(aux_loc_mem)
     temp_mems.append(aux_temp_mem)
-    # print(len(local_mems))
     if len(local_mems) > 25:
-        print('Too deeep dude')
+        print('Stack overflow')
         exit(1)
     ip_stack.append(ip)
     ip = int(func_dir[left]['start'])
@@ -388,8 +382,6 @@ def do_era(left, _, __):
     ints, floats, strings, bools, _voids, * \
         objs = func_dir[left]['num_temps'].split('\u001f')
     aux_temp_mem = (Memory(ints, floats, strings, bools))
-
-    # print('era', aux_temp_mem)
 
 
 def do_param(left, _, res):
@@ -537,7 +529,7 @@ def run_quad(op, left, right, res):
         'end': do_end,
         'verify': do_verify
     }
-    # print(ip, op, left, right, res)
+    print(ip, op, left, right, res)
     if op != 'goto' and op != 'gosub' and op != 'verify' and op != 'end' and op != 'end_func' and op != 'era':
         left = check_if_address(left)
         right = check_if_address(right)
@@ -551,7 +543,6 @@ if __name__ == '__main__':
     filename = sys.argv[1]
 
     with open(filename) as infile:
-        # print(list(infile.readline().split(' ')[2]))
         foo = infile.readline().split(' ')[2].split('\u001f')
         ints, floats, strings, bools, _voids, *_ = foo
         global_mem = Memory(ints, floats, strings, bools)
@@ -582,11 +573,3 @@ if __name__ == '__main__':
         while ip < len(quads):
             op, left, right, res = quads[ip].rstrip('\n').split(' ')
             run_quad(op, left, right, res)
-
-        # print(quads)
-        # while True:
-        #     try:
-        #         op, left, right, res = infile.readline().split(' ')
-        #         run_quad(op, left, right, res)
-        #     except EOFError:
-        #         pass

@@ -1,9 +1,0 @@
-program functionss;
-
-int function foo(n: int) {
-    return (n + 1);
-}
-
-main() {
-    print(foo(1));
-}

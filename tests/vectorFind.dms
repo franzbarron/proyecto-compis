@@ -1,0 +1,96 @@
+program vectorFind;
+
+var array[10]: int;
+
+int function modulo(a:int, n:int) {
+    var div: int;
+    div = a / n;
+    return (a - n * div);
+}
+
+void function fillWithRandom() {
+    var seed, mult, mod, x, i:int;
+    seed = 415953016;
+    mult = 1365;
+    mod = 736836939;
+    x = modulo(seed * mult + 1, mod);
+    array[0] = x;
+    for i = 1 until 9 do {
+        x = modulo(x * mult + 1, mod);
+        array[i] = x;
+    }
+}
+
+void function sort()
+{
+    var i, j, len, temp: int;
+    len = 9;
+    for i = 0 until len do {   
+        for j = 0 until len - i - 1 do {
+            if (array[j] < array[j + 1])then{
+                temp = array[j];
+                array[j] = array[j + 1];
+                array[j + 1] = temp;
+            }
+        }
+    }
+}
+
+int function findLineal(n: int){
+    var i, len: int;
+    len = 9;
+    for i = 0 until len do {
+        if(array[i] == n) then {
+            return (i);
+        }
+    }
+    return (-1);
+}
+
+int function binarySearch(n: int){
+    var low, high, mid: int;
+    low = 0;
+    high = 9;
+    
+    while(low <= high) do {
+        mid = low + (high - low) / 2;
+        if(array[mid] == n) then{
+            return (mid);
+        }else{
+            if(array[mid] < n) then{
+                low = mid + 1;
+            }else{
+                high = mid - 1;
+            }
+        }
+    }
+    return (-1);
+}
+
+main(){
+    var n,i, idx:int;
+    fillWithRandom();
+    print("Arreglo original");
+    for i = 0 until 9 do {
+        print(array[i]);
+    }
+    print("Numero a buscar:");
+    read(n);
+    idx = findLineal(n);
+    if (idx == -1) then {
+        print("No se encontro el elemento");
+    }else{
+        print("El elemento esta en", idx);
+    }
+    sort();
+    print("Arreglo sorteado");
+    for i = 0 until 9 do {
+        print(array[i]);
+    }
+    idx = binarySearch(n);
+    if (idx == -1) then {
+        print("No se encontro el elemento");
+    }else{
+        print("El elemento esta en", idx);
+    }
+}

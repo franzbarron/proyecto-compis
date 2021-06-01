@@ -1,7 +1,0 @@
-%% most basic structure
-
-program Hello;
-
-main() {
-  print("Hello, world");
-}

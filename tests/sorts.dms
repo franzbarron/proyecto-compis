@@ -1,0 +1,111 @@
+program sorts;
+
+var unsortedArray[10]: int;
+var sorted[10]: int;
+
+int function modulo(a:int, n:int) {
+    var div: int;
+    div = a / n;
+    return (a - n * div);
+}
+
+void function fillWithRandom() {
+    var seed, mult, mod, x, i:int;
+    seed = 415953016;
+    mult = 1365;
+    mod = 736836939;
+    x = modulo(seed * mult + 1, mod);
+    unsortedArray[0] = x;
+    for i = 1 until 9 do {
+        x = modulo(x * mult + 1, mod);
+        unsortedArray[i] = x;
+    }
+}
+
+void function copyToSorted() {
+    var i: int;
+    for i = 0 until 9 do {
+        sorted[i] = unsortedArray[i];
+    }
+}
+
+%% Function to sort using bubble sort
+void function bubbleSort()
+{
+    var i, j, len, temp: int;
+    copyToSorted();
+    len = 9;
+    for i = 0 until len do {   
+        for j = 0 until len - i - 1 do {
+            if (sorted[j] < sorted[j + 1])then{
+                temp = sorted[j];
+                sorted[j] = sorted[j + 1];
+                sorted[j + 1] = temp;
+            }
+        }
+    }
+}
+
+%% Function to sort using insertion sort
+void function insertionSort(){
+    var i, j, len, key: int;
+    %% var sorted[10]: int;
+    len = 9;
+    copyToSorted();
+    for i = 1 until len do{
+        key = sorted[i];
+        j = i - 1;
+        
+        while( j >= 0) do{
+            if(key < sorted[j]) then{
+                sorted[j + 1] = sorted[j];
+                j = j - 1;
+            } else {
+                break;
+            }
+        }
+
+        while( j >= 0 & key < sorted[j]) do{
+                sorted[j + 1] = sorted[j];
+                j = j - 1;
+        }
+
+        sorted[j + 1] = key;
+    }
+}
+
+void function selectionSort(){
+    var i, j, len, min_idx, temp: int;
+    %% var sorted[10]: int;
+    len = 9;
+    copyToSorted();
+    for i = 0 until len do {
+        min_idx = i;
+        for j = i + 1 until len do {
+            if(sorted[j] > sorted[min_idx]) then {
+                min_idx = j;
+            }
+        }
+        temp = sorted[min_idx];
+        sorted[min_idx] = sorted[i];
+        sorted[i] = temp;
+    }
+}
+
+main(){
+    var i, j, len: int;
+    fillWithRandom();
+    %%copyToSorted();
+    %% insertionSort();
+    selectionSort();
+    %% for i = 0 until 9 do {
+    %%     print(unsortedArray[i]);
+    %% }
+    for i = 0 until 9 do {
+        print(sorted[i]);
+    }
+    %% len = 9;
+    %% i = 0;
+    %% i = len - i - 1;
+    %% print(len - i - 1);
+}

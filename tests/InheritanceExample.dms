@@ -20,22 +20,35 @@ class Cat inherits Animal {
  methods
   %% Prefered way to initialize attributes. Must be manually called.
   void function init(_name: string, _age: int, _color: string) {
-    name = _name;
-    age = _age;
-    color = _color;
+    name = _name; 
+    age = _age;   
+    color = _color; 
   }
 
   void function meow() {
-    print("Meow!");
+    print("Meow!\n");
+  }
+
+  void function setColor(_color: string){
+    color = color + " and " + _color;
+  }
+  
+  bool function isKitten(){
+    return (1 >= age);
   }
 }
 
-var foo: int;
-
 main() {
-  var myCat: Cat;
-
+  var str: string;
+  var myCat, yourCat: Cat;
   myCat.init("Peludin", 2, "black");
-  print("I have a cat called", myCat.name);
+  yourCat.init("Luna", 1, "white");
+  print("I have a cat called ", myCat.name + "\n");
+  print("You have a cat called ", yourCat.name + "\n");
+  myCat.setColor("white");
+  if(yourCat.isKitten()) then {
+    print("Luna is a kitten!\n");
+  }
   myCat.meow();
+  print(myCat.color);
 }

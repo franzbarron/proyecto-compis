@@ -1,20 +1,33 @@
 program factorial;
 
 int function fact(n: int) {
-  if(n == 0) then {
+  if(n == 0 | n == 1) then {
     return (1);
   }
   return (n * fact(n - 1));
 }
 
+%% void function hello() {
+%%   print("hello");
+%% }
+
 main() {
-  var num, edad: int;
-  var name: string;
-  print("Como te llamas?");
-  read(name);
-  read(edad);
-  print("Insert number");
+  var num, sum, i: int;
+  sum = 1;
+  i = 2;
+  hello();
+  print("Ingrese numero");
   read(num);
-  print(edad);
-  print(fact(num));
+  print("Factorial recursivo:", fact(num));
+  for i = 2 until num do {
+   sum = sum * i;
+  }
+  print("Factorial iterativo con for:", sum);
+  sum = 1;
+  i = 2;
+  while (i <= num) do {
+    sum = sum * i;
+    i = i + 1;
+  }
+  print("Factorial iterativo con while:", sum);
 }

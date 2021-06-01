@@ -1,0 +1,25 @@
+program fibonacci;
+
+int function fib(num: int) {
+    if(num <= 1) then {
+        return (num);
+    }
+
+    return (fib(num - 1) + fib(num - 2));
+}
+
+main() {
+    var n, a, b, c: int;
+    print("Ingrese numero");
+    read(n);
+    print("Fibonacci recursivo:", fib(n));
+    a = 1;
+    b = 1;
+    while (n - 2 > 0) do {
+        c = a + b;
+        a = b;
+        b = c;
+        n = n - 1;
+    }
+    print("Fibonacci iterativo:", c);
+}

@@ -498,7 +498,6 @@ def do_goto(_, __, res):
 
 
 def do_assignment(left, right, res):
-    # print('doass', local_mems)
     local_mem = local_mems[-1]
     temp_mem = temp_mems[-1]
     memories = {
@@ -605,7 +604,10 @@ def do_print(_, __, res):
         s = str.split(res_dir_val, '\\n')
         for i in range(len(s) - 1):
             sys.stdout.write(s[i] + '\n')
-        sys.stdout.write(s[-1])
+        if s[-1] == '':
+            sys.stdout.write(s[-1])
+        else:
+            sys.stdout.write(s[-1] + ' ')
     else:
         sys.stdout.write(str(res_dir_val) + ' ')
 

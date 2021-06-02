@@ -1,3 +1,4 @@
+from lexer_parser.domas_errors import CompilationError
 from lexer_parser.domas_lexer import DomasLexer
 from lexer_parser.domas_parser import DomasParser
 # from domas_parser import DomasParser
@@ -72,6 +73,8 @@ if __name__ == '__main__':
             print('Code compiled successfully to', program_name + '.domas')
         except EOFError:
             pass
+        except CompilationError:
+            exit(1)
         except Exception as err:
             exception_type, exception_object, exception_traceback = sys.exc_info()
             traceback.print_exception(

@@ -10,9 +10,9 @@ int function fib(num: int) {
 
 main() {
     var n, a, b, c: int;
-    print("Ingrese numero");
+    print("Ingrese numero\n");
     read(n);
-    print("Fibonacci recursivo:", fib(n));
+    print("Fibonacci recursivo:", fib(n), "\n");
     a = 1;
     b = 1;
     while (n - 2 > 0) do {
@@ -21,5 +21,5 @@ main() {
         b = c;
         n = n - 1;
     }
-    print("Fibonacci iterativo:", c);
+    print("Fibonacci iterativo:", c, "\n");
 }

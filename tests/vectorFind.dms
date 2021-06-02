@@ -70,27 +70,27 @@ int function binarySearch(n: int){
 main(){
     var n,i, idx:int;
     fillWithRandom();
-    print("Arreglo original");
+    print("Arreglo original:\n");
     for i = 0 until 9 do {
-        print(array[i]);
+        print(array[i], "\n");
     }
-    print("Numero a buscar:");
+    print("\nNumero a buscar:\n");
     read(n);
     idx = findLineal(n);
     if (idx == -1) then {
-        print("No se encontro el elemento");
+        print("No se encontro el elemento\n");
     }else{
-        print("El elemento esta en", idx);
+        print("El elemento esta en el indice", idx, "\n");
     }
     sort();
-    print("Arreglo sorteado");
+    print("\nArreglo sorteado: \n");
     for i = 0 until 9 do {
-        print(array[i]);
+        print(array[i], "\n");
     }
     idx = binarySearch(n);
     if (idx == -1) then {
-        print("No se encontro el elemento");
+        print("No se encontro el elemento\n");
     }else{
-        print("El elemento esta en", idx);
+        print("El elemento esta en el indice", idx, "\n");
     }
 }

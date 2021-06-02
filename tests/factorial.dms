@@ -7,27 +7,23 @@ int function fact(n: int) {
   return (n * fact(n - 1));
 }
 
-%% void function hello() {
-%%   print("hello");
-%% }
 
 main() {
   var num, sum, i: int;
   sum = 1;
   i = 2;
-  hello();
-  print("Ingrese numero");
+  print("Ingrese numero\n");
   read(num);
-  print("Factorial recursivo:", fact(num));
+  print("Factorial recursivo:", fact(num),"\n");
   for i = 2 until num do {
    sum = sum * i;
   }
-  print("Factorial iterativo con for:", sum);
+  print("Factorial iterativo con for:", sum,"\n");
   sum = 1;
   i = 2;
   while (i <= num) do {
     sum = sum * i;
     i = i + 1;
   }
-  print("Factorial iterativo con while:", sum);
+  print("Factorial iterativo con while:", sum,"\n");
 }

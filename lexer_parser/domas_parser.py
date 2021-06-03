@@ -1596,7 +1596,7 @@ class DomasParser(Parser):
                 print(
                     'ERROR: Type mismatch on line', self.symstack[-2].lineno)
                 print(
-                    '       Expected value of type', self.types[int(self.function_table[self.called_func]['params'][self.param_counter])], 'got value of type', self.types[(last_quad.res % 1500) // 300], 'instead')
+                    '       Expected value of type', self.types[int(self.function_table[self.called_func]['params'][self.param_counter])], 'got value of type', self.types[(val['dir'] % 1500) // 300], 'instead')
                 return
             self.quadruples.append(
                 Quadruple(val['dir'], -1, 'param', self.param_counter))

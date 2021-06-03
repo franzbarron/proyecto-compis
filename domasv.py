@@ -149,7 +149,11 @@ def do_addition(left, right, res):
     }
     left_dir_val = get_actual_value(left)
     right_dir_val = get_actual_value(right)
-    mult_res = left_dir_val + right_dir_val
+
+    if left_dir_val == None or right_dir_val == None:
+        raise ReferenceError("Value in variable has not been assigned")
+
+    sum_res = left_dir_val + right_dir_val
 
     if int(res) >= 6000:
         prev_local_mem = local_mems[-2]
@@ -157,13 +161,13 @@ def do_addition(left, right, res):
         mem = int(res) // 1500
         if mem == 1:
             prev_local_mem.set_value_in_address(int(res) %
-                                                1500, mult_res)
+                                                1500, sum_res)
         else:
             memories[str(mem)].set_value_in_address(int(res) %
-                                                    1500, mult_res)
+                                                    1500, sum_res)
     else:
         memories[str(int(res) // 1500)].set_value_in_address(int(res) %
-                                                             1500, mult_res)
+                                                             1500, sum_res)
 
 
 def do_multiplication(left, right, res):
@@ -179,6 +183,10 @@ def do_multiplication(left, right, res):
 
     left_dir_val = get_actual_value(left)
     right_dir_val = get_actual_value(right)
+
+    if left_dir_val == None or right_dir_val == None:
+        raise ReferenceError("Value in variable has not been assigned")
+
     mult_res = left_dir_val * right_dir_val
 
     if int(res) >= 6000:
@@ -209,6 +217,10 @@ def do_subtraction(left, right, res):
 
     left_dir_val = get_actual_value(left)
     right_dir_val = get_actual_value(right)
+
+    if left_dir_val == None or right_dir_val == None:
+        raise ReferenceError("Value in variable has not been assigned")
+
     mult_res = left_dir_val - right_dir_val
 
     if int(res) >= 6000:
@@ -238,6 +250,10 @@ def do_division(left, right, res):
     }
     left_dir_val = get_actual_value(left)
     right_dir_val = get_actual_value(right)
+
+    if left_dir_val == None or right_dir_val == None:
+        raise ReferenceError("Value in variable has not been assigned")
+
     mult_res = left_dir_val / right_dir_val
 
     if int(res) >= 6000:
@@ -268,6 +284,10 @@ def compare_gt(left, right, res):
 
     left_dir_val = get_actual_value(left)
     right_dir_val = get_actual_value(right)
+
+    if left_dir_val == None or right_dir_val == None:
+        raise ReferenceError("Value in variable has not been assigned")
+
     mult_res = left_dir_val > right_dir_val
 
     if int(res) >= 6000:
@@ -298,6 +318,10 @@ def compare_lt(left, right, res):
 
     left_dir_val = get_actual_value(left)
     right_dir_val = get_actual_value(right)
+
+    if left_dir_val == None or right_dir_val == None:
+        raise ReferenceError("Value in variable has not been assigned")
+
     mult_res = left_dir_val < right_dir_val
 
     if int(res) >= 6000:
@@ -327,6 +351,10 @@ def compare_eq(left, right, res):
     }
     left_dir_val = get_actual_value(left)
     right_dir_val = get_actual_value(right)
+
+    if left_dir_val == None or right_dir_val == None:
+        raise ReferenceError("Value in variable has not been assigned")
+
     mult_res = left_dir_val == right_dir_val
 
     if int(res) >= 6000:
@@ -357,6 +385,10 @@ def compare_ne(left, right, res):
 
     left_dir_val = get_actual_value(left)
     right_dir_val = get_actual_value(right)
+
+    if left_dir_val == None or right_dir_val == None:
+        raise ReferenceError("Value in variable has not been assigned")
+
     mult_res = left_dir_val != right_dir_val
 
     if int(res) >= 6000:
@@ -387,6 +419,10 @@ def compare_geq(left, right, res):
 
     left_dir_val = get_actual_value(left)
     right_dir_val = get_actual_value(right)
+
+    if left_dir_val == None or right_dir_val == None:
+        raise ReferenceError("Value in variable has not been assigned")
+
     mult_res = left_dir_val >= right_dir_val
 
     if int(res) >= 6000:
@@ -417,6 +453,10 @@ def compare_leq(left, right, res):
 
     left_dir_val = get_actual_value(left)
     right_dir_val = get_actual_value(right)
+
+    if left_dir_val == None or right_dir_val == None:
+        raise ReferenceError("Value in variable has not been assigned")
+
     mult_res = left_dir_val <= right_dir_val
 
     if int(res) >= 6000:
@@ -445,6 +485,10 @@ def do_or(left, right, res):
     }
     left_dir_val = get_actual_value(left)
     right_dir_val = get_actual_value(right)
+
+    if left_dir_val == None or right_dir_val == None:
+        raise ReferenceError("Value in variable has not been assigned")
+
     mult_res = left_dir_val or right_dir_val
 
     if int(res) >= 6000:
@@ -475,6 +519,10 @@ def do_and(left, right, res):
 
     left_dir_val = get_actual_value(left)
     right_dir_val = get_actual_value(right)
+
+    if left_dir_val == None or right_dir_val == None:
+        raise ReferenceError("Value in variable has not been assigned")
+
     mult_res = left_dir_val and right_dir_val
 
     if int(res) >= 6000:
@@ -511,6 +559,8 @@ def do_assignment(left, right, res):
         if int(right) == -1:
             left_dir_val = memories[str(int(left) // 1500)
                                     ].get_value_of_address(int(left) % 1500)
+            if left_dir_val == None:
+                raise ReferenceError("Value in variable has not been assigned")
             prev_local_mem = local_mems[-2]
             res = class_mem.get_value_of_address(int(res) % 1500)
             mem = int(res) // 1500
@@ -542,6 +592,10 @@ def do_goto_f(_, right, res):
     }
     right_dir_val = memories[str(int(right) // 1500)
                              ].get_value_of_address(int(right) % 1500)
+
+    if right_dir_val == None:
+        raise ReferenceError("Value in variable has not been assigned")
+
     ip = int(res) if right_dir_val == False else ip + 1
 
 
@@ -585,6 +639,10 @@ def do_param(left, _, res):
     }
     left_dir_val = memories[str(int(left) // 1500)
                             ].get_value_of_address(int(left) % 1500)
+
+    if left_dir_val == None:
+        raise ReferenceError("Value in variable has not been assigned")
+
     param_type = func_dir[next_func]['params'][int(res)]
     aux_loc_mem.set_param_value_in_addres(left_dir_val, param_type)
 
@@ -733,7 +791,11 @@ def run_quad(op, left, right, res):
         left = check_if_address(left)
         right = check_if_address(right)
         res = check_if_address(res)
-    operations[op](left, right, res)
+    try:
+        operations[op](left, right, res)
+    except Exception as e:
+        print(e)
+        exit(1)
     if op != 'goto' and op != 'goto_f' and op != 'gosub':
         ip += 1
 

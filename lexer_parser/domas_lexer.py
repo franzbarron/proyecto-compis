@@ -93,7 +93,7 @@ class DomasLexer(Lexer):
         self.lineno += len(t.value)
 
     def error(self, t):
-        print("Illegal character '%s'" % t.value[0])
+        print("ERROR: Illegal character '%s' found" % t.value[0])
         self.index += 1
 
 

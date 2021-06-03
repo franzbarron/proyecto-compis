@@ -87,6 +87,8 @@ class DomasParser(Parser):
 
     # Cheks if a var is an array by finding its first dimension
     def check_var_is_array(self, var):
+        if not var:
+            return
         if var['dir'] >= 4500 and var['dir'] < 6000:
             return False
         if not self.check_variable_exists(var['value']):
@@ -106,6 +108,8 @@ class DomasParser(Parser):
         ro = self.stack_of_stacks[-2].pop()
         lo = self.stack_of_stacks[-2].pop()
         op = self.stack_of_stacks[-1].pop()
+        if not ro or not lo:
+            raise SystemError("Reached unsolvable state")
         r_type = sm.checkOperation(lo['type'], ro['type'], op)
         self.last_type = r_type
         idx = self.types.index(r_type)
@@ -133,12 +137,12 @@ class DomasParser(Parser):
     def programa(self, p):
         if self.found_errors:
             raise CompilationError()
-        func_dir_out = open('debug/funcdir.out', 'w')
-        class_dir_out = open('debug/classdir.out', 'w')
-        func_dir_out.write(json.dumps(
-            self.function_table, indent=2))
-        class_dir_out.write(json.dumps(
-            self.class_table, indent=2))
+        # func_dir_out = open('debug/funcdir.out', 'w')
+        # class_dir_out = open('debug/classdir.out', 'w')
+        # func_dir_out.write(json.dumps(
+        #     self.function_table, indent=2))
+        # class_dir_out.write(json.dumps(
+        #     self.class_table, indent=2))
         return (self.program_name, self.function_table, self.class_table, self.constant_table, self.quadruples)
 
     # Creates goto main quadruple and appends it to the quadruple list
@@ -443,6 +447,16 @@ class DomasParser(Parser):
             offset = 1500 if self.curr_scope != self.program_name else 0
             num_types = self.function_table[self.curr_scope]['num_types']
             base_addrs = [int(n) for n in num_types.split('\u001f')[:-1]]
+            if not p[-1] in self.class_table:
+                for i in range(1, len(self.symstack)):
+                    if hasattr(self.symstack[i * -1], 'lineno'):
+                        lineno = self.symstack[i * -1].lineno
+                        break
+                print('ERROR: No class\033[1m',
+                      p[-1], '\033[0mwas found.')
+                print('       Missing reference found on line',
+                      lineno)
+                return
             for attr in self.class_table[p[-1]]['vars']:
                 attr_type = self.class_table[p[-1]]['vars'][attr]['type']
                 idx = self.types.index(attr_type)
@@ -608,7 +622,8 @@ class DomasParser(Parser):
             self.make_and_push_quad()
             made_quad = True
         lo = self.stack_of_stacks[-2].pop()
-        # print(self.symstack)
+        if not lo:
+            return
         v_type = self.get_var_type(self.latest_var, self.symstack[-2])
         if not v_type:
             return
@@ -924,7 +939,7 @@ class DomasParser(Parser):
             return p[0] + p[1] + p[2]
         return p[0]
 
-    # TO DO var_cte
+    # Returns value, type and address of the constant
     @_('variable', 'CTE_I', 'CTE_F', 'CTE_STRING', 'cte_bool', 'call_to_function')
     def var_cte(self, p):
         offset = 4500
@@ -951,24 +966,26 @@ class DomasParser(Parser):
         elif hasattr(p, 'call_to_function'):
             return p[0]
         else:
-            whole_p = p[0] + p[1] + p[2] if len(p) == 3 else p[0]
-            if not self.check_variable_exists(whole_p):
-                raise SyntaxError(f'Variable {whole_p} is not declared')
-            if self.current_class != None:
-                if whole_p in self.class_table[self.current_class]['vars']:
-                    cte_type = self.class_table[self.current_class]['vars'][whole_p]['type']
-                    var_dir = self.class_table[self.current_class]['vars'][whole_p]['dir']
-                else:
-                    cte_type = self.function_table[self.curr_scope]['vars'][whole_p]['type']
-                    var_dir = self.function_table[self.curr_scope]['vars'][whole_p]['dir']
-                return {'value': whole_p, 'type': cte_type, 'dir': var_dir}
+            if not self.check_variable_exists(p[0]):
+                for i in range(1, len(self.symstack)):
+                    if hasattr(self.symstack[i * -1], 'lineno'):
+                        lineno = self.symstack[i * -1].lineno
+                        break
+                self.found_errors = True
+                print('ERROR: No variable\033[1m',
+                      p[0], '\033[0mwas found.')
+                print('       Missing reference found on line',
+                      lineno)
+                return
+            if self.current_class != None and p[0] in self.class_table[self.current_class]['vars']:
+                cte_type = self.class_table[self.current_class]['vars'][p[0]]['type']
+                cons_dir = self.class_table[self.current_class]['vars'][p[0]]['dir']
             else:
-                cte_type = self.get_var_type(whole_p, self.symstack[-2])
-                if whole_p in self.function_table[self.curr_scope]['vars']:
-                    var_dir = self.function_table[self.curr_scope]['vars'][whole_p]['dir']
+                cte_type = self.get_var_type(p[0], self.symstack[-2])
+                if p[0] in self.function_table[self.curr_scope]['vars']:
+                    cons_dir = self.function_table[self.curr_scope]['vars'][p[0]]['dir']
                 else:
-                    var_dir = self.function_table[self.program_name]['vars'][whole_p]['dir']
-                return {'value': whole_p, 'type': cte_type, 'dir': var_dir}
+                    cons_dir = self.function_table[self.program_name]['vars'][p[0]]['dir']
 
         return {'value': p[0], 'type': cte_type, 'dir': cons_dir}
 
@@ -1079,6 +1096,13 @@ class DomasParser(Parser):
 
     @_('function_or_method vf0 ctf2 LPAREN func_params RPAREN fp2 fp3 ctf0 ctf3')
     def call_to_function(self, p):
+        if not self.check_variable_exists(self.called_func):
+            # self.found_errors = True
+            # print('ERROR: No function\033[1m',
+            #       self.called_func, '\033[0mwas found.')
+            # print('       Missing reference found on line',
+            #       self.symstack[-5].lineno)
+            return
         func_dir = self.function_table[self.program_name]['vars'][self.called_func]['dir']
         func_type = self.function_table[self.called_func]['return_type']
         return {'value': 't' + str(self.temp_counter - 1), 'type': func_type, 'dir': func_dir}
@@ -1098,6 +1122,13 @@ class DomasParser(Parser):
     # Call the return value in the address of the corresponding variable
     @_('')
     def ctf0(self, p):
+        if not self.check_variable_exists(self.called_func):
+            self.found_errors = True
+            print('ERROR: No function\033[1m',
+                  self.called_func, '\033[0mwas found.')
+            print('       Missing reference found on line',
+                  self.symstack[-3].lineno)
+            return
         func_dir = self.function_table[self.program_name]['vars'][self.called_func]['real_dir']
         func_type = self.function_table[self.program_name]['vars'][self.called_func]['type']
         idx = self.types.index(func_type)
@@ -1197,6 +1228,8 @@ class DomasParser(Parser):
             self.quad_counter += 1
         else:
             var = self.stack_of_stacks[-2].pop()
+            if not var:
+                return
             if self.check_var_is_array(var):
                 var_dir = '$' + str(self.last_arr_t.pop())
             else:
@@ -1498,6 +1531,16 @@ class DomasParser(Parser):
     #  Make quadruples if the stack of operators is not empty and do param quadruples
     @ _('')
     def fp1(self, p):
+        if not self.called_func in self.function_table:
+            for i in range(1, len(self.symstack)):
+                if hasattr(self.symstack[i * -1], 'lineno'):
+                    lineno = self.symstack[i * -1].lineno
+                    break
+            self.found_errors = True
+            print('ERROR: No function\033[1m',
+                  self.called_func, '\033[0mwas found.')
+            print('       Missing reference found on line', lineno)
+            return
         made_quad = False
         while(len(self.stack_of_stacks[-1])):
             offset = 800 * len(self.types) * 2
@@ -1518,10 +1561,20 @@ class DomasParser(Parser):
         if made_quad:
             last_quad = self.quadruples[-1]
             if self.param_counter == len(self.function_table[self.called_func]['params']):
-                raise SyntaxError('Too many params')
-            param_type = (last_quad.res % 1500) // 300
-            if param_type != int(self.function_table[self.called_func]['params'][self.param_counter]):
-                raise TypeError('Type mismatch')
+                self.found_errors = True
+                print(
+                    'ERROR: Too many parameters passed in call to function on line', self.symstack[-2].lineno)
+                return
+            try:
+                sm.checkAssignment(self.types[int(self.function_table[self.called_func]
+                                                  ['params'][self.param_counter])], self.types[(last_quad.res % 1500) // 300], '=')
+            except TypeError:
+                self.found_errors = True
+                print(
+                    'ERROR: Type mismatch on line', self.symstack[-2].lineno)
+                print(
+                    '       Expected value of type', self.types[int(self.function_table[self.called_func]['params'][self.param_counter])], 'got value of type', self.types[(last_quad.res % 1500) // 300], 'instead')
+                return
             self.quadruples.append(
                 Quadruple(last_quad.res, -1, 'param', self.param_counter))
             self.quad_counter += 1
@@ -1529,10 +1582,22 @@ class DomasParser(Parser):
         else:
             val = self.stack_of_stacks[-2].pop()
             if self.param_counter == len(self.function_table[self.called_func]['params']):
-                raise SyntaxError('Too many params')
-            param_type = (val['dir'] % 1500) // 300
-            if param_type != int(self.function_table[self.called_func]['params'][self.param_counter]):
-                raise TypeError('Type mismatch')
+                self.found_errors = True
+                print(
+                    'ERROR: Too many parameters passed in call to function on line', self.symstack[-2].lineno)
+                return
+            if not val:
+                return
+            try:
+                sm.checkAssignment(self.types[int(self.function_table[self.called_func]
+                                                  ['params'][self.param_counter])], self.types[(val['dir'] % 1500) // 300], '=')
+            except TypeError:
+                self.found_errors = True
+                print(
+                    'ERROR: Type mismatch on line', self.symstack[-2].lineno)
+                print(
+                    '       Expected value of type', self.types[int(self.function_table[self.called_func]['params'][self.param_counter])], 'got value of type', self.types[(last_quad.res % 1500) // 300], 'instead')
+                return
             self.quadruples.append(
                 Quadruple(val['dir'], -1, 'param', self.param_counter))
             self.quad_counter += 1
@@ -1568,20 +1633,50 @@ class DomasParser(Parser):
         pass
 
     def error(self, p):
-        # print(p.value in DomasLexer.reserved_words)
-        # if p.value in DomasLexer.reserved_words:
-        #     raise ReservedWordError(p.value)
-        # else:
         if not p:
             return
-        self.found_errors = True
-        print('Syntax error found on line', p.lineno, 'Found', p.value)
+        print('ERROR: Syntax error found on line', p.lineno)
+        if p.value == 'var':
+            print(
+                '       All variable declarations must be done before any other statement')
+        elif p.value == '(':
+            print(
+                '       Parentheses are not allowed in this position.')
+        elif p.value == '{':
+            print(
+                '       Curly brackets are not allowed in this position.')
+        elif p.value == '[':
+            print(
+                '       Brackets are not allowed in this position.')
+        elif p.value == ')':
+            print(
+                '       Closing parenthesis found without matching opening one.')
+        elif p.value == '}':
+            print(
+                '       Closing curly bracket without an opening one.')
+        elif p.value == ']':
+            print(
+                '       Closing bracket without an opening one.')
+        elif p.value == ';':
+            print(
+                '       Must only be used at the end of statements')
+        elif p.value == '=':
+            print(
+                '       Assignment is not allowed here. Perhaps you meant to use ==?')
+        else:
+            print(
+                '       Keyword or id misplaced')
+        if not self.found_errors:
+            print(
+                '       It\'s possible that all other syntax errors may be fixed by solving this one.')
         self.errok()
+        self.found_errors = True
         while True:
             tok = next(self.tokens, None)
 
             if tok == None:
                 raise EOFError()
 
-            if tok.type == 'RBRACE':
+            if tok.type == 'SEMI':
+                tok = next(self.tokens, None)
                 return tok

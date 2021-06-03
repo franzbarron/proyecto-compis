@@ -73,6 +73,9 @@ if __name__ == '__main__':
             print('Code compiled successfully to', program_name + '.domas')
         except EOFError:
             pass
+        except SystemError as err:
+            print(err)
+            exit(2)
         except CompilationError:
             exit(1)
         except Exception as err:

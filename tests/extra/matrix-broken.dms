@@ -1,0 +1,66 @@
+program MatrixMultiplication;
+
+var m1[2,3]: int;
+var m2[3,5]: int;
+var mr[2, 5]: int;
+var unoGlobal: int;
+%% unoGlobal = 1;
+
+void function matrixMultiplication(){
+    var i, j, k,m, n, p, sum, uno: int;
+    uno = 1;
+    n = (2 - uno);
+    m = (3*1) - (uno*1);
+    p = 5 - 1;
+    for i = 0 until n do {
+        for j = 0 until p do {
+            sum = 0*uno;
+            for k = 0 until m do {
+                sum = sum + m1[i, k] * m2[k, j];
+            }
+            mr[i, j] = sum*uno*uno*(uno*unoGlobal);
+        }
+    }
+}
+
+main() {
+    var i, j: int;
+    for i = 0 until 1 do {
+        for j = 0 until 2 do {
+            m1[i,j] = i + j * i;
+        }
+    }
+    %% var i: int;
+
+    for i = 0 until 2 do {
+        for j = 0 until 4 do {
+            %% m2[i,j] = i + j * i
+            %% + (unoGlobal - uno);
+        }
+    }
+
+    print("Matriz 1:\n");
+    for i = 0 until 1 do {
+        for j = 0 until 2 do {
+            print(m1[i,j]);
+        }
+        print("fran eres weeb por haber visto un ep de persona 5 lola mento\n");
+    }
+
+    print("Matriz 2:\n");
+    for i = 0 until 2 do {
+        for j = 0 until 4 do {
+            print(m2[i,j]);
+        }
+        print("\n");
+    }
+
+    matrixMultiplication();
+    print("Matriz resultante:\n");
+    for i = 0 until 1 do {
+        for j = 0 until 4 do {
+            print(mr[i,j]);
+        }
+        print("\n");
+    }
+}

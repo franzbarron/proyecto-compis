@@ -1,0 +1,36 @@
+program factorial;
+
+int function fact(n: int) {
+  if((n == 0) | (n == 1)) then {
+    return (1);
+  }
+  return ((n) * (fact(n - 1)));
+}
+
+
+main() {
+  var num, sum, i: int;
+  sum = 1;
+  %% var sum: int;
+  i = 2;
+  print("Ingrese numero\n");
+  read(num);
+  print("Factorial recursivo:", (fact(num)),"\n");
+  
+  for i = 2 until num do {
+   sum = sum * i;
+  }
+  
+  print("Factorial iterativo con for:", sum,"\n");
+  sum = 1;
+  %% var sum: int;
+  i = 2;
+  while (i <= num) do {
+    sum = sum * i;
+    i = i + 1;
+  }
+  print(
+    "Factorial iterativo con while:", 
+    sum,
+    " wiii no se rompio.. o si? \n");
+}

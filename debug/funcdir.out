@@ -1,0 +1,54 @@
+{
+  "sort": {
+    "return_type": null,
+    "num_types": "22\u001f0\u001f1\u001f0\u001f5\u001f"
+  },
+  "modulo": {
+    "return_type": "int",
+    "num_types": "3\u001f0\u001f0\u001f0\u001f0\u001f",
+    "params": "00",
+    "num_temps": "2\u001f1\u001f0\u001f0\u001f0\u001f",
+    "start": 2
+  },
+  "fillWithRandom": {
+    "return_type": "void",
+    "num_types": "4\u001f1\u001f0\u001f0\u001f0\u001f",
+    "params": "",
+    "num_temps": "6\u001f2\u001f0\u001f1\u001f0\u001f",
+    "start": 8
+  },
+  "copyToSorted": {
+    "return_type": "void",
+    "num_types": "2\u001f0\u001f0\u001f0\u001f0\u001f",
+    "params": "",
+    "num_temps": "4\u001f0\u001f0\u001f1\u001f0\u001f",
+    "start": 39
+  },
+  "bubbleSort": {
+    "return_type": "void",
+    "num_types": "4\u001f0\u001f0\u001f0\u001f0\u001f",
+    "params": "",
+    "num_temps": "11\u001f0\u001f0\u001f3\u001f0\u001f",
+    "start": 53
+  },
+  "insertionSort": {
+    "return_type": "void",
+    "num_types": "4\u001f0\u001f0\u001f0\u001f0\u001f",
+    "params": "",
+    "num_temps": "9\u001f0\u001f0\u001f3\u001f0\u001f",
+    "start": 88
+  },
+  "selectionSort": {
+    "return_type": "void",
+    "num_types": "5\u001f0\u001f0\u001f0\u001f0\u001f",
+    "params": "",
+    "num_temps": "7\u001f0\u001f0\u001f3\u001f0\u001f",
+    "start": 122
+  },
+  "main": {
+    "return_type": null,
+    "num_types": "3\u001f0\u001f0\u001f0\u001f0\u001f",
+    "params": "",
+    "num_temps": "3\u001f0\u001f0\u001f3\u001f0\u001f"
+  }
+}

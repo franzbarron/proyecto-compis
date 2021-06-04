@@ -1,0 +1,29 @@
+program classTest;
+
+class Pato {
+    attributes
+    var edad: int;
+    var ducklingNames[5, 5]: int;
+    methods
+    
+}
+
+var pato1: Pato;
+
+int function add1(n: int) {
+    return (n + 1);
+}
+
+main() {
+    var foo[5]: int;
+    var bar[3]: string;
+    var i: int;
+    foo[1 + 2 - add1(0)] = add1(0);
+    %% bar[foo[1 + 2 - add1(0)]] = "Hola";
+
+    for i = 0 until 4 do{
+        print(foo[i]);
+    }
+    %%print(foo[2]);
+    %%print(bar[1]);
+}

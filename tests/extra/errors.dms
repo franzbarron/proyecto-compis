@@ -1,0 +1,33 @@
+program errors;
+
+%% var foo: int;
+
+class A {
+  attributes
+    var a[10]: int;
+    var s: string;
+  methods
+  void function d(a: string)  {
+    print(a, "\n");
+  }
+  void function c() {
+    %% %% a[0] = 1;
+    %% read(a[0]);
+    %% print(a[0],"\n");
+    s = "a";
+    d(s);
+  }
+}
+
+%% void function uno(){}
+%% void function foo(a: int, a:int){}
+
+main() {
+  var o: A;
+  var i: int;
+  o.c();
+  read(i);
+  %% foo();
+  %% x = 1;
+  print(i, "Hello there\n");
+}

@@ -1,0 +1,9 @@
+%% most basic structure
+
+program Hello;
+
+main() {
+  var a, b: int;
+  a = b + 1;
+  print("Hello, world");
+}

@@ -1,0 +1,29 @@
+program fibonacci;
+
+int function fib(num: int) {
+    if((num < 0) | (num == 1) | (num <> 2) | (num < 3)) then {
+        return (num);
+    }
+
+    return ((fib(num - 1)) + (fib(num - 2)));
+}
+
+main() {
+    var n, a, b, c: int;
+    n = 69;
+    print(n);
+    print("Ingrese numero\n");
+    read(n);
+    print(n);
+    print("Fibonacci recursivo:", fib(n), "\n");
+    a = 1;
+    b = 1;
+    while ((n - 2) > 0) do {
+        c = a + b;
+        a = b;
+        b = c;
+        n = n - 1;
+    }
+    %% var equisde: int;
+    print("Fibonacci iterativo:", c, "\n");
+}

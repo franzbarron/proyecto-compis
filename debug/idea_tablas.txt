@@ -1,0 +1,85 @@
+func_dir  = {
+    global: {
+        vars {
+            pato1.age: {
+                type: Pato
+                dir: 0
+            }
+            pato1.vivo: {
+                type: Pato
+                dir: bools
+            }
+            pato1.vivo: {
+                type: Pato
+                dir: bools
+            }
+            pato2.age: {
+                type: Pato
+                dir: 1
+            }
+            pato2.vivo: {
+                type: Pato
+                dir: bools
+            }
+            pato2.vivo: {
+                type: Pato
+                dir: bools
+            }
+            pato2: {
+                type: Pato
+                dir: 1500  * num_objs =1500 * 2 = 3000
+            }
+            ganso1: {
+                type: Ganso
+                dir: 1500  * num_objs =1500 * 3 = 4500
+            }
+        }
+    }
+
+    foo {
+        return_type: int
+        start: 5
+        vars: {
+            bar: {
+                type: int
+                dir: 0
+            }
+            xyz; {
+                type: float
+                dir: 300
+            }
+        }
+        parmams: 0
+        num_temps: 120000
+        num_types: 2300000
+    }
+}
+
+class_dir = {
+    Pato: {
+        vars: {
+            age: {
+                type: int
+                dir: 0
+            }
+            vivo: {
+                type: bool
+                dir: 900
+            }
+            muerto: {
+                type: bool
+                dir: 901
+            }
+        }
+    }
+    Ganso: {
+        vars: {
+            age: {
+                type: int
+                dir: 0
+            }
+        }
+    }
+}
+
+

@@ -1,0 +1,91 @@
+program  patito;
+
+%% class Pato {
+%%   attributes
+%%   var name: string;
+%%   var age: int;
+%%   var cosotas[2, 5]: int;
+%%   var cositas[3]: int;
+%%   methods
+%%   void function quack() {
+%%     print("quack!");
+%%   }
+%%   int function calculate_age(anos:int){
+%%     age = anos * 2;
+%%     return(1);
+%%   }
+%% }
+
+%% class Ganso inherits Pato {
+%%   attributes
+%%   var color: string;
+%%   methods
+%% }
+
+%% var i: int;
+%% var a[7]: int;
+%% var m[3,5]: int;
+%% var j, k: int;
+%% var f: float;
+%% var s: string;
+%% var b: bool;
+%% %% var p: Pato;
+%% %% var g: Ganso;
+
+%% void function uno(a: int, b: int) {
+%%   if (a > 0) then {
+%%     i = a + b * j + i;
+%%     print(i + j);
+%%     uno(a - i, i);
+%%   } else {
+%%     print(a + b);
+%%   }
+%% }
+
+%% int function dos(a:int, g: float){
+%%   var i: int;
+%%   i = a;
+
+%%   while(a > 0) do {
+%%     a = a-k*j;
+%%     uno(a*2, a+k);
+%%     g = g*j-k;
+%%   }
+%%   return(i+k*j);
+%% }
+
+main() {
+  %% var duckie, quacky: Pato;
+  %% var gus: Ganso;
+  %% var foo: int;
+  %% var tonto[10]: int;
+  var i, j: int;
+  var tontis[3,5]: int;
+  for i = 0 until 2 do {
+    for j = 0 until 4 do {
+      tontis[i, j] = i + j;
+    }
+  }
+  for i = 0 until 2 do {
+    for j = 0 until 4 do {
+      print("tontis",tontis[i, j]);
+    }
+  }
+%%   i = 2; k = i + 1;
+%%   f = 3.14;
+%%   j = i * f;
+%%   duckie.age = 1;
+%%   print(duckie.age);
+%%   while(i > 0) do {
+%%     print(dos(i + k, f * 3) + 3);
+%%     print(i, j* 2, f * 2 + 1.5);
+%%     i = i - k;
+%%   }
+%%   duckie.quack();
+%%   duckie.calculate_age(5);
+%%   quacky.age = 2;
+%%   duckie.name = "Mr. Quack";
+%%   gus.name = "Gus";
+%%   gus.color = "morado";
+%%   print(gus.name, gus.color);
+}

@@ -1,0 +1,60 @@
+var pato1, pato2: Pato; | instance -1 -1 (class_dir.index(Pato) = 0)
+                        | instance -1 -1 (class_dir.index(Pato) = 0)
+var ganso1: Ganso;      | instance -1 -1 (class_dir.index(Ganso) = 1)
+pato1.age = 0       | = 4500 -1 1200
+pato2.age = 1       | = 4501 -1 2400
+pato1.vivo = 0      | = 4500 -1 1201   
+print(pato1.vivo)   | print -1 -1 2100
+print(pato2.muerto) | print -1 -1 3301
+ganso1.age = 3      | = 4503 -1 
+pato1.volar()
+int(pato1.age)
+
+pato1{
+
+    
+}
+## vm
+
+do_instance(self, _, __, res):
+    mems_obj.append(memory(class_dir.index(res)))
+
+
+mems_obj [Memory(pato), memory(pato), memory(ganso)]
+
+if dir > 1200 and dir < inicio mem func
+    dir_attr = dir %1200
+    mem = dir // 1200
+    val = mems_obj[mem].get_dir_val(dir_addr)
+
+def __init__(self, i, f, s, b):
+        self.ints = [None] * int(i)
+        self.floats = [None] * int(f)
+        self.strings = [None] * int(s)
+        self.bools = [None] * int(b)
+
+patito1
+1200
+    i: 0-299
+    f: 300-599
+    s: 600 - 899
+    b: 900- 1199
+
+patito2
+2400
+    i: 0-299
+    f: 300-599
+    s: 600 - 899
+    b: 900- 1199
+
+patito3
+3600
+    i: 0-299
+    f: 300-599
+    s: 600 - 899
+    b: 900- 1199
+
+foo()
+foo()
+var pato1, pato2: Pato;
+
